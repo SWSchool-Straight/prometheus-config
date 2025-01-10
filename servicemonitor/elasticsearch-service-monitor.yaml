@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: elasticsearch-service-monitor
+  namespace: monitoring  # Prometheus가 설치된 네임스페이스
+  labels:
+    release: prometheus  # Prometheus Helm release 이름과 동일해야 함
+spec:
+  namespaceSelector:
+    matchNames:
+      - logging           # 네임스페이스 지정
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus-elasticsearch-exporter
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
