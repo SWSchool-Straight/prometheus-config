@@ -1,18 +1,18 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: argocd-metrics-monitor
-  namespace: monitoring  # Prometheus가 설치된 네임스페이스
+  name: argocd-service-monitor
+  namespace: str-monitoring  # Prometheus가 설치된 네임스페이스
   labels:
     release: prometheus  # Prometheus Helm release 이름과 동일해야 함
 spec:
   namespaceSelector:
     matchNames:
-      - argocd           # ArgoCD 네임스페이스 지정
+      - str-argocd           # ArgoCD 네임스페이스 지정
   selector:
     matchExpressions:
       - {key: app.kubernetes.io/name, operator: In, values: [argocd-metrics, argocd-server-metrics]}
   endpoints:
-    - port: metrics  # for argocd-metrics
+    - port: metrics
       path: /metrics
       interval: 30s
