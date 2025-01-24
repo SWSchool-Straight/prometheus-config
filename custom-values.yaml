@@ -33,6 +33,14 @@ prometheus:
            target_label: __param_target
          - target_label: __address__
            replacement: blackbox-exporter.monitoring.svc.cluster.local:9115  # Blackbox Exporter's address
+     - job_name: 'argocd-metrics'
+       scrape_interval: 30s
+       metrics_path: /metrics
+       scheme: http
+       static_configs:
+         - targets:
+           - "argocd-server-metrics:8083"  # Argocd 메트릭스 서버의 주소
+           - "argocd-application-controller-metrics:8082"
 alertmanager:
   enabled: true
   config:
@@ -45,10 +53,18 @@ alertmanager:
       repeat_interval: 12h
       routes:
       - match:
+          class: argocd  # Argocd 알림을 위한 매치 조건
+        receiver: 'argocd-slack-alert'  # 새로운 수신자 추가
+      - match:
           class: harbor
         receiver: 'harbor-slack-alert'
     receivers:
     - name: 'default-slack-alert' # Blackhole
+    - name: 'argocd-slack-alert'  # Argocd 알림을 위한 수신자
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/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'
+        channel: '#argocd-notice'  # Argocd 알림을 받을 Slack 채널
+        send_resolved: true
     - name: 'harbor-slack-alert'
       slack_configs:
       - api_url: 'https://hooks.slack.com/services/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'
