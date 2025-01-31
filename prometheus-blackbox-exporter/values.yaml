@@ -9,7 +9,7 @@ kind: Deployment
 
 ## Override the namespace
 ##
-namespaceOverride: ""
+namespaceOverride: "str-monitoring"
 
 # Override Kubernetes version if your distribution does not follow semver v2
 kubeVersionOverride: ""
@@ -167,6 +167,8 @@ config:
         valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
         follow_redirects: true
         preferred_ip_protocol: "ip4"
+        valid_status_codes: [200, 302, 403]
+        method: GET
 
 # Set custom config path, other than default /config/blackbox.yaml. If let empty, path will be "/config/blackbox.yaml"
 # configPath: "/foo/bar"
