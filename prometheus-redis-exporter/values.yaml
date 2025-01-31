@@ -19,7 +19,17 @@ image:
 
 command: []
 
-extraArgs: {}
+extraArgs:
+  redis.addr: "redis://redis-svc-headless.str-redis.svc.cluster.local:6379"
+  is-cluster: "true"
+  export-client-list: "true"
+  export-client-port: "true"
+  include-config-metrics: "true"
+  include-system-metrics: "true"
+  check-keys: "*"
+  check-key-groups: "*"
+  check-single-keys: "*"
+  check-streams: "*"
 
 # global custom labels, applied to all resrouces
 customLabels: {}
@@ -42,7 +52,13 @@ service:
     # prometheus.io/path: /metrics
     # prometheus.io/port: "9121"
     # prometheus.io/scrape: "true"
-resources: {}
+resources: 
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+  requests:
+    cpu: "250m"
+    memory: "128Mi"
 
 nodeSelector: {}
 
