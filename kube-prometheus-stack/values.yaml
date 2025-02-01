@@ -481,6 +481,8 @@ alertmanager:
   config:
     global:
       resolve_timeout: 5m
+      slack_api_url: 'https://hooks.slack.com/services/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'
+
     inhibit_rules:
       - source_matchers:
           - 'severity = critical'
@@ -505,41 +507,43 @@ alertmanager:
       - target_matchers:
           - 'alertname = InfoInhibitor'
     route:
-      group_by: ['namespace']
-      group_wait: 5s
-      group_interval: 15s
-      repeat_interval: 12h
-      receiver: 'default-slack-alert'  # 기본 수신자 설정
+      group_by: ['alertname', 'namespace']  # 알림을 더 논리적으로 그룹화
+      group_wait: 30s  # 그룹 대기 시간 증가
+      group_interval: 5m  # 그룹 간격 증가
+      repeat_interval: 4h  # 반복 간격 조정
+      receiver: 'default-slack-alert'
       routes:
       - receiver: 'argocd-slack-alert'
         matchers:
-          - class = "argocd"  # match를 matchers로 변경
+          - class = "argocd"
       - receiver: 'harbor-slack-alert'
         matchers:
-          - class = "harbor"  # match를 matchers로 변경
-        
+          - class = "harbor"
+
     receivers:
     - name: 'default-slack-alert'
       slack_configs:
-      - api_url: 'https://hooks.slack.com/services/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'
-        channel: '#metric-alert'
+      - channel: '#metric-alert'
         send_resolved: true
+        title: '{{ template "slack.default.title" . }}'
+        text: '{{ template "slack.default.text" . }}'
+        actions:
+        - type: button
+          text: '🔍 자세히 보기'
+          url: '{{ template "slack.default.titlelink" . }}'
     - name: 'argocd-slack-alert'
       slack_configs:
-      - api_url: 'https://hooks.slack.com/services/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'
-        channel: '#metric-alert'
+      - channel: '#metric-alert'
         send_resolved: true
+        title: '{{ template "slack.default.title" . }}'
+        text: '{{ template "slack.default.text" . }}'
     - name: 'harbor-slack-alert'
       slack_configs:
-      - api_url: 'https://hooks.slack.com/services/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'
-        channel: '#harbor-notice'
+      - channel: '#harbor-notice'
         send_resolved: true
-    inhibit_rules:
-    - source_match:
-        severity: 'critical'
-      target_match:
-        severity: 'warning'
-      equal: ['alertname']
+        title: '{{ template "slack.default.title" . }}'
+        text: '{{ template "slack.default.text" . }}'
+
     templates:
     - '/etc/alertmanager/config/*.tmpl'
 
