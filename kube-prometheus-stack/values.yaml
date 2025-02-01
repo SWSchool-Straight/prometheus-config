@@ -506,17 +506,18 @@ alertmanager:
           - 'alertname = InfoInhibitor'
     route:
       group_by: ['namespace']
-      group_wait: 30s
-      group_interval: 5m
+      group_wait: 5s
+      group_interval: 15s
       repeat_interval: 12h
       receiver: default-slack-alert
       routes:
-      - match_re:
-          job: "argocd.*"  # argocd로 시작하는 모든 job 매칭
-        receiver: 'argocd-slack-alert'
-      - match:
+      - receiver: 'argocd-slack-alert'
+        match:
+          class: "argocd"
+      - receiver: 'harbor-slack-alert'
+        match:
           class: harbor
-        receiver: 'harbor-slack-alert'
+        
     receivers:
     - name: 'default-slack-alert' # Blackhole
     - name: 'argocd-slack-alert'  # Argocd 알림을 위한 수신자
@@ -1151,15 +1152,15 @@ alertmanager:
     clusterAdvertiseAddress: false
 
     ## clusterGossipInterval determines interval between gossip attempts.
-    ## Needs to be specified as GoDuration, a time duration that can be parsed by Go’s time.ParseDuration() (e.g. 45ms, 30s, 1m, 1h20m15s)
+    ## Needs to be specified as GoDuration, a time duration that can be parsed by Go's time.ParseDuration() (e.g. 45ms, 30s, 1m, 1h20m15s)
     clusterGossipInterval: ""
 
     ## clusterPeerTimeout determines timeout for cluster peering.
-    ## Needs to be specified as GoDuration, a time duration that can be parsed by Go’s time.ParseDuration() (e.g. 45ms, 30s, 1m, 1h20m15s)
+    ## Needs to be specified as GoDuration, a time duration that can be parsed by Go's time.ParseDuration() (e.g. 45ms, 30s, 1m, 1h20m15s)
     clusterPeerTimeout: ""
 
     ## clusterPushpullInterval determines interval between pushpull attempts.
-    ## Needs to be specified as GoDuration, a time duration that can be parsed by Go’s time.ParseDuration() (e.g. 45ms, 30s, 1m, 1h20m15s)
+    ## Needs to be specified as GoDuration, a time duration that can be parsed by Go's time.ParseDuration() (e.g. 45ms, 30s, 1m, 1h20m15s)
     clusterPushpullInterval: ""
 
     ## clusterLabel defines the identifier that uniquely identifies the Alertmanager cluster.
@@ -3788,9 +3789,9 @@ prometheus:
     ## If true, pass --storage.tsdb.max-block-duration=2h to prometheus. This is already done if using Thanos
     ##
     ## AutomountServiceAccountToken indicates whether a service account token should be automatically mounted in the pod,
-    ## If the field isn’t set, the operator mounts the service account token by default.
+    ## If the field isn't set, the operator mounts the service account token by default.
     ## Warning: be aware that by default, Prometheus requires the service account token for Kubernetes service discovery,
-    ## It is possible to use strategic merge patch to project the service account token into the ‘prometheus’ container.
+    ## It is possible to use strategic merge patch to project the service account token into the 'prometheus' container.
     automountServiceAccountToken: true
 
     disableCompaction: false
