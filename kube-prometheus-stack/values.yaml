@@ -379,7 +379,7 @@ global:
     create: true
 
     ## Create ClusterRoles that extend the existing view, edit and admin ClusterRoles to interact with prometheus-operator CRDs
-    ## Ref: https://kubernetes.io/docs/reference/access-authn-authz/#aggregated-clusterroles
+    ## Ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles
     createAggregateClusterRoles: false
     pspEnabled: false
     pspAnnotations: {}
@@ -515,55 +515,65 @@ alertmanager:
       routes:
       - receiver: 'argocd-slack-alert'
         matchers:
-          - class = "argocd"
+        - class = "argocd"
       - receiver: 'harbor-slack-alert'
         matchers:
-          - class = "harbor"
+        - class = "harbor"
 
     receivers:
     - name: 'default-slack-alert'
       slack_configs:
       - channel: '#metric-alert'
         send_resolved: true
-        title: '{{ template "slack.default.title" . }}'
-        text: '{{ template "slack.default.text" . }}'
-        actions:
-        - type: button
-          text: '🔍 자세히 보기'
-          url: '{{ template "slack.default.titlelink" . }}'
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *알림 내용:* {{ .Labels.alertname }}
+          *심각도:* {{ .Labels.severity }}
+          *네임스페이스:* {{ .Labels.namespace }}
+          {{ if .Annotations.summary }}*요약:* {{ .Annotations.summary }}{{ end }}
+          {{ if .Annotations.description }}*설명:* {{ .Annotations.description }}{{ end }}
+          *시작 시간:* {{ .StartsAt | since }}
+          {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
+          ---
+          {{ end }}
+
     - name: 'argocd-slack-alert'
       slack_configs:
       - channel: '#metric-alert'
         send_resolved: true
-        title: '{{ template "slack.default.title" . }}'
-        text: '{{ template "slack.default.text" . }}'
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *알림 내용:* {{ .Labels.alertname }}
+          *심각도:* {{ .Labels.severity }}
+          *네임스페이스:* {{ .Labels.namespace }}
+          {{ if .Annotations.summary }}*요약:* {{ .Annotations.summary }}{{ end }}
+          {{ if .Annotations.description }}*설명:* {{ .Annotations.description }}{{ end }}
+          *시작 시간:* {{ .StartsAt | since }}
+          {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
+          ---
+          {{ end }}
+
     - name: 'harbor-slack-alert'
       slack_configs:
       - channel: '#harbor-notice'
         send_resolved: true
-        title: '{{ template "slack.default.title" . }}'
-        text: '{{ template "slack.default.text" . }}'
-
-    templates:
-    - |-
-      {{ define "slack.default.title" }}
-      [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
-      {{ end }}
-
-      {{ define "slack.default.titlelink" }}
-      {{ .ExternalURL }}/#/alerts?receiver={{ .Receiver }}
-      {{ end }}
-
-      {{ define "slack.default.text" }}
-      {{ range .Alerts }}
-      *경고 수준:* {{ .Labels.severity }}
-      *네임스페이스:* {{ .Labels.namespace }}
-      *문제 내용:* {{ .Annotations.summary }}
-      *상세 설명:* {{ .Annotations.description }}
-      *시작 시간:* {{ .StartsAt | since }}
-      {{ if .EndsAt }}*종료 시간:* {{ .EndsAt | since }}{{ end }}
-      {{ end }}
-      {{ end }}
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *알림 내용:* {{ .Labels.alertname }}
+          *심각도:* {{ .Labels.severity }}
+          *네임스페이스:* {{ .Labels.namespace }}
+          {{ if .Annotations.summary }}*요약:* {{ .Annotations.summary }}{{ end }}
+          {{ if .Annotations.description }}*설명:* {{ .Annotations.description }}{{ end }}
+          *시작 시간:* {{ .StartsAt | since }}
+          {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
+          ---
+          {{ end }}
 
   ## Alertmanager configuration directives (as string type, preferred over the config hash map)
   ## stringConfig will be used only, if tplConfig is true
