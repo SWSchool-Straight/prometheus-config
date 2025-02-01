@@ -379,7 +379,7 @@ global:
     create: true
 
     ## Create ClusterRoles that extend the existing view, edit and admin ClusterRoles to interact with prometheus-operator CRDs
-    ## Ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles
+    ## Ref: https://kubernetes.io/docs/reference/access-authn-authz/#aggregated-clusterroles
     createAggregateClusterRoles: false
     pspEnabled: false
     pspAnnotations: {}
@@ -545,7 +545,25 @@ alertmanager:
         text: '{{ template "slack.default.text" . }}'
 
     templates:
-    - '/etc/alertmanager/config/*.tmpl'
+    - |-
+      {{ define "slack.default.title" }}
+      [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+      {{ end }}
+
+      {{ define "slack.default.titlelink" }}
+      {{ .ExternalURL }}/#/alerts?receiver={{ .Receiver }}
+      {{ end }}
+
+      {{ define "slack.default.text" }}
+      {{ range .Alerts }}
+      *경고 수준:* {{ .Labels.severity }}
+      *네임스페이스:* {{ .Labels.namespace }}
+      *문제 내용:* {{ .Annotations.summary }}
+      *상세 설명:* {{ .Annotations.description }}
+      *시작 시간:* {{ .StartsAt | since }}
+      {{ if .EndsAt }}*종료 시간:* {{ .EndsAt | since }}{{ end }}
+      {{ end }}
+      {{ end }}
 
   ## Alertmanager configuration directives (as string type, preferred over the config hash map)
   ## stringConfig will be used only, if tplConfig is true
