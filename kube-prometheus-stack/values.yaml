@@ -507,9 +507,9 @@ alertmanager:
       repeat_interval: 12h
       receiver: default-slack-alert
       routes:
-      - match:
-          class: argocd  # Argocd 알림을 위한 매치 조건
-        receiver: 'argocd-slack-alert'  # 새로운 수신자 추가
+      - match_re:
+          job: "argocd.*"  # argocd로 시작하는 모든 job 매칭
+        receiver: 'argocd-slack-alert'
       - match:
           class: harbor
         receiver: 'harbor-slack-alert'
