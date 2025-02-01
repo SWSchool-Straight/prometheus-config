@@ -324,6 +324,7 @@ additionalPrometheusRules:
           for: 12h
           labels:
             severity: warning
+            class: argocd
           annotations:
             summary: "[{{ $labels.name }}] Application not synchronized"
             description: "The application [{{ $labels.name }}] has not been synchronized for over 12 hours."
@@ -332,6 +333,7 @@ additionalPrometheusRules:
           for: 1m
           labels:
             severity: critical
+            class: argocd
           annotations:
             summary: "Argocd Server Down"
             description: "The Argocd server is not reachable."
@@ -340,6 +342,7 @@ additionalPrometheusRules:
           for: 1m
           labels:
             severity: critical
+            class: argocd
           annotations:
             summary: "Argocd Application Controller Down"
             description: "The Argocd application controller is not reachable."
@@ -348,6 +351,7 @@ additionalPrometheusRules:
           for: 5m
           labels:
             severity: warning
+            class: argocd
           annotations:
             summary: "[{{ $labels.name }}] Application Rollback Detected"
             description: "The application [{{ $labels.name }}] has encountered a rollback due to failed sync."
@@ -517,7 +521,7 @@ alertmanager:
     - name: 'default-slack-alert' # Blackhole
     - name: 'argocd-slack-alert'  # Argocd 알림을 위한 수신자
       slack_configs:
-      - api_url: 'https://hooks.slack.com/services/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'
+      - api_url: 'https://hooks.slack.com/services/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'
         channel: '#metric-alert'  # Argocd 알림을 받을 Slack 채널
         send_resolved: true
     - name: 'harbor-slack-alert'
