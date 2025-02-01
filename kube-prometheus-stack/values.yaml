@@ -524,9 +524,6 @@ alertmanager:
       - receiver: 'argocd-slack-alert'
         matchers:
         - class = "argocd"
-      - receiver: 'harbor-slack-alert'
-        matchers:
-        - class = "harbor"
 
     ## 슬랙 알림 일시 중단을 위해 slack_configs 주석 처리
     receivers:
@@ -565,24 +562,6 @@ alertmanager:
       #     *문제 요약:* {{ .Annotations.summary }}
       #     *상세 내용:* {{ .Annotations.description }}
       #     *발생 시간:* {{ .StartsAt | since }}
-      #     {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
-      #     ---
-      #     {{ end }}
-
-    - name: 'harbor-slack-alert'
-      # slack_configs:
-      # - channel: '#harbor-notice'
-      #   send_resolved: true
-      #   color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
-      #   title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
-      #   text: |
-      #     {{ range .Alerts }}
-      #     *알림 내용:* {{ .Labels.alertname }}
-      #     *심각도:* {{ .Labels.severity }}
-      #     *네임스페이스:* {{ .Labels.namespace }}
-      #     {{ if .Annotations.summary }}*요약:* {{ .Annotations.summary }}{{ end }}
-      #     {{ if .Annotations.description }}*설명:* {{ .Annotations.description }}{{ end }}
-      #     *시작 시간:* {{ .StartsAt | since }}
       #     {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
       #     ---
       #     {{ end }}
@@ -4268,32 +4247,6 @@ prometheus:
     ## port to 2379 and allow etcd scraping provided it is running on all Kubernetes master nodes
     ##
     additionalScrapeConfigs: 
-     - job_name: 'harbor-metrics'
-       scrape_interval: 30s
-       metrics_path: /metrics
-       scheme: http
-       static_configs:
-         - targets:
-           - "3.39.180.201:9090"
-     - job_name: 'jenkins-metrics'
-       scrape_interval: 30s
-       metrics_path: /prometheus
-       scheme: http
-       static_configs:
-         - targets:
-           - "3.35.96.221:8080"
-     - job_name: 'harbor-blackbox'
-       metrics_path: /probe
-       params:
-         module: [http_2xx]  # Refers to the module defined in blackbox.yml
-       static_configs:
-         - targets:
-           - "https://harbor.sw-staring.com"  # Full URL with scheme
-       relabel_configs:
-         - source_labels: [__address__]
-           target_label: __param_target
-         - target_label: __address__
-           replacement: blackbox-exporter.str-monitoring.svc.cluster.local:9115  # Blackbox Exporter's address
      - job_name: 'argocd-metrics'
        scrape_interval: 30s
        metrics_path: /metrics
