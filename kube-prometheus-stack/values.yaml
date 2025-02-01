@@ -790,7 +790,7 @@ alertmanager:
 
     ## Service type
     ##
-    type: LoadBalancer
+    type: ClusterIP
 
   ## Configuration for creating a ServiceMonitor for AlertManager
   ##
