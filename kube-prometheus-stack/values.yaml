@@ -790,7 +790,7 @@ alertmanager:
 
     ## Service type
     ##
-    type: ClusterIP
+    type: LoadBalancer
 
   ## Configuration for creating a ServiceMonitor for AlertManager
   ##
@@ -3453,7 +3453,7 @@ prometheus:
 
     ## Service type
     ##
-    type: ClusterIP
+    type: LoadBalancer
 
     ## Additional ports to open for Prometheus service
     ##
