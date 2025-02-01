@@ -311,10 +311,7 @@ additionalPrometheusRules:
       - name: argocd-group
         rules:
         - alert: ArgocdApplicationHealth
-          # health 상태와 sync_status를 함께 고려하도록 수정
-          expr: |
-            argocd_app_info{health!="Healthy"} > 0 or
-            (argocd_app_info{sync_status!="Synced"} > 0 and argocd_app_info{health="Healthy"} > 0)
+          expr: argocd_app_info{health!="Healthy"} > 0 or (argocd_app_info{sync_status!="Synced"} > 0 and argocd_app_info{health="Healthy"} > 0)
           for: 5m
           labels:
             severity: critical
