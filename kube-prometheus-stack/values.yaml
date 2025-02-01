@@ -509,21 +509,25 @@ alertmanager:
       group_wait: 5s
       group_interval: 15s
       repeat_interval: 12h
-      receiver: default-slack-alert
+      receiver: 'default-slack-alert'  # 기본 수신자 설정
       routes:
       - receiver: 'argocd-slack-alert'
-        match:
-          class: "argocd"
+        matchers:
+          - class = "argocd"  # match를 matchers로 변경
       - receiver: 'harbor-slack-alert'
-        match:
-          class: harbor
+        matchers:
+          - class = "harbor"  # match를 matchers로 변경
         
     receivers:
-    - name: 'default-slack-alert' # Blackhole
-    - name: 'argocd-slack-alert'  # Argocd 알림을 위한 수신자
+    - name: 'default-slack-alert'
       slack_configs:
       - api_url: 'https://hooks.slack.com/services/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'
-        channel: '#metric-alert'  # Argocd 알림을 받을 Slack 채널
+        channel: '#metric-alert'
+        send_resolved: true
+    - name: 'argocd-slack-alert'
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/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'
+        channel: '#metric-alert'
         send_resolved: true
     - name: 'harbor-slack-alert'
       slack_configs:
@@ -4519,7 +4523,7 @@ prometheus:
     hostNetwork: false
 
     # HostAlias holds the mapping between IP and hostnames that will be injected
-    # as an entry in the pod’s hosts file.
+    # as an entry in the pod's hosts file.
     hostAliases: []
     #  - ip: 10.10.0.100
     #    hostnames:
@@ -4531,7 +4535,7 @@ prometheus:
     tracingConfig: {}
 
     ## Defines the service discovery role used to discover targets from ServiceMonitor objects and Alertmanager endpoints.
-    ## If set, the value should be either “Endpoints” or “EndpointSlice”. If unset, the operator assumes the “Endpoints” role.
+    ## If set, the value should be either "Endpoints" or "EndpointSlice". If unset, the operator assumes the "Endpoints" role.
     serviceDiscoveryRole: ""
 
     ## Additional configuration which is not covered by the properties above. (passed through tpl)
