@@ -305,13 +305,59 @@ defaultRules:
 
 ## Deprecated way to provide custom recording or alerting rules to be deployed into the cluster.
 ##
-# additionalPrometheusRules: []
+additionalPrometheusRules:
+  - name: argocd-rule
+    groups: 
+      - name: argocd-group
+        rules:
+        - alert: ArgocdApplicationHealth
+          expr: argocd_app_info{health!="Healthy"} > 0
+          for: 5m
+          labels:
+            severity: critical
+            class: argocd
+          annotations:
+            summary: "Argocd Application Health Alert"
+            description: "One or more Argocd applications are not healthy."
+        - alert: ArgoAppNotSynced
+          expr: argocd_app_info{sync_status!="Synced"} > 0
+          for: 12h
+          labels:
+            severity: warning
+          annotations:
+            summary: "[{{ $labels.name }}] Application not synchronized"
+            description: "The application [{{ $labels.name }}] has not been synchronized for over 12 hours."
+        - alert: ArgocdServerDown
+          expr: up{job="argocd-server-metrics"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Argocd Server Down"
+            description: "The Argocd server is not reachable."
+        - alert: ArgocdApplicationControllerDown
+          expr: up{job="argocd-application-controller-metrics"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Argocd Application Controller Down"
+            description: "The Argocd application controller is not reachable."
+        - alert: ArgoAppRollback
+          expr: argocd_app_sync_total{phase="Failed"} > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "[{{ $labels.name }}] Application Rollback Detected"
+            description: "The application [{{ $labels.name }}] has encountered a rollback due to failed sync."
 #  - name: my-rule-file
 #    groups:
 #      - name: my_group
 #        rules:
 #        - record: my_record
 #          expr: 100 * my_record
+
 
 ## Provide custom recording or alerting rules to be deployed into the cluster.
 ##
@@ -472,7 +518,7 @@ alertmanager:
     - name: 'argocd-slack-alert'  # Argocd 알림을 위한 수신자
       slack_configs:
       - api_url: 'https://hooks.slack.com/services/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'
-        channel: '#argocd-notice'  # Argocd 알림을 받을 Slack 채널
+        channel: '#metric-alert'  # Argocd 알림을 받을 Slack 채널
         send_resolved: true
     - name: 'harbor-slack-alert'
       slack_configs:
@@ -4194,7 +4240,7 @@ prometheus:
          - source_labels: [__address__]
            target_label: __param_target
          - target_label: __address__
-           replacement: blackbox-exporter.monitoring.svc.cluster.local:9115  # Blackbox Exporter's address
+           replacement: blackbox-exporter.str-monitoring.svc.cluster.local:9115  # Blackbox Exporter's address
      - job_name: 'argocd-metrics'
        scrape_interval: 30s
        metrics_path: /metrics
@@ -4249,7 +4295,7 @@ prometheus:
     ## If additional scrape configurations are already deployed in a single secret file you can use this section.
     ## Expected values are the secret name and key
     ## Cannot be used with additionalScrapeConfigs
-    additionalScrapeConfigsSecret: {}
+    additionalScrapeConfigsSecret:
       enabled: false
       # name:
       # key:
