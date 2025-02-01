@@ -317,8 +317,8 @@ additionalPrometheusRules:
             severity: critical
             class: argocd
           annotations:
-            summary: "Argocd Application Health Alert"
-            description: "One or more Argocd applications are not healthy."
+            summary: "ArgoCD 애플리케이션 상태 알림"
+            description: "하나 이상의 ArgoCD 애플리케이션이 비정상 상태입니다."
         - alert: ArgoAppNotSynced
           expr: argocd_app_info{sync_status!="Synced"} > 0
           for: 12h
@@ -326,8 +326,8 @@ additionalPrometheusRules:
             severity: warning
             class: argocd
           annotations:
-            summary: "[{{ $labels.name }}] Application not synchronized"
-            description: "The application [{{ $labels.name }}] has not been synchronized for over 12 hours."
+            summary: "[{{ $labels.name }}] 애플리케이션 동기화 실패"
+            description: "[{{ $labels.name }}] 애플리케이션이 12시간 이상 동기화되지 않았습니다."
         - alert: ArgocdServerDown
           expr: up{job="argocd-server-metrics"} == 0
           for: 1m
@@ -335,8 +335,8 @@ additionalPrometheusRules:
             severity: critical
             class: argocd
           annotations:
-            summary: "Argocd Server Down"
-            description: "The Argocd server is not reachable."
+            summary: "ArgoCD 서버 다운"
+            description: "ArgoCD 서버에 접근할 수 없습니다."
         - alert: ArgocdApplicationControllerDown
           expr: up{job="argocd-application-controller-metrics"} == 0
           for: 1m
@@ -344,8 +344,8 @@ additionalPrometheusRules:
             severity: critical
             class: argocd
           annotations:
-            summary: "Argocd Application Controller Down"
-            description: "The Argocd application controller is not reachable."
+            summary: "ArgoCD 애플리케이션 컨트롤러 다운"
+            description: "ArgoCD 애플리케이션 컨트롤러에 접근할 수 없습니다."
         - alert: ArgoAppRollback
           expr: argocd_app_sync_total{phase="Failed"} > 0
           for: 5m
@@ -353,8 +353,8 @@ additionalPrometheusRules:
             severity: warning
             class: argocd
           annotations:
-            summary: "[{{ $labels.name }}] Application Rollback Detected"
-            description: "The application [{{ $labels.name }}] has encountered a rollback due to failed sync."
+            summary: "[{{ $labels.name }}] 애플리케이션 롤백 감지"
+            description: "[{{ $labels.name }}] 애플리케이션이 동기화 실패로 인해 롤백이 발생했습니다."
 #  - name: my-rule-file
 #    groups:
 #      - name: my_group
@@ -550,6 +550,9 @@ alertmanager:
           *알림 내용:* {{ .Labels.alertname }}
           *심각도:* {{ .Labels.severity }}
           *네임스페이스:* {{ .Labels.namespace }}
+          {{ if .Labels.application }}*애플리케이션:* {{ .Labels.application }}{{ end }}
+          {{ if .Labels.health_status }}*상태:* {{ .Labels.health_status }}{{ end }}
+          {{ if .Labels.sync_status }}*동기화 상태:* {{ .Labels.sync_status }}{{ end }}
           {{ if .Annotations.summary }}*요약:* {{ .Annotations.summary }}{{ end }}
           {{ if .Annotations.description }}*설명:* {{ .Annotations.description }}{{ end }}
           *시작 시간:* {{ .StartsAt | since }}
