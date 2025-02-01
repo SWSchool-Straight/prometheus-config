@@ -311,14 +311,22 @@ additionalPrometheusRules:
       - name: argocd-group
         rules:
         - alert: ArgocdApplicationHealth
-          expr: argocd_app_info{health!="Healthy"} > 0
+          # health 상태와 sync_status를 함께 고려하도록 수정
+          expr: |
+            argocd_app_info{health!="Healthy"} > 0 or
+            (argocd_app_info{sync_status!="Synced"} > 0 and argocd_app_info{health="Healthy"} > 0)
           for: 5m
           labels:
             severity: critical
             class: argocd
           annotations:
-            summary: "ArgoCD 애플리케이션 상태 알림"
-            description: "하나 이상의 ArgoCD 애플리케이션이 비정상 상태입니다."
+            summary: "[{{ $labels.name }}] ArgoCD 애플리케이션 상태 알림"
+            description: |
+              애플리케이션 이름: {{ $labels.name }}
+              Health 상태: {{ $labels.health }}
+              동기화 상태: {{ $labels.sync_status }}
+              {{ if $labels.health != "Healthy" }}애플리케이션이 비정상 상태입니다.{{ end }}
+              {{ if $labels.sync_status != "Synced" }}애플리케이션이 동기화되지 않았습니다.{{ end }}
         - alert: ArgoAppNotSynced
           expr: argocd_app_info{sync_status!="Synced"} > 0
           for: 12h
@@ -507,7 +515,7 @@ alertmanager:
       - target_matchers:
           - 'alertname = InfoInhibitor'
     route:
-      group_by: ['alertname', 'namespace']  # 알림을 더 논리적으로 그룹화
+      group_by: ['alertname', 'namespace', 'name']  # 그룹화 기준 수정
       group_wait: 30s  # 초기 그룹 내 알림 대기 시간 증가
       group_interval: 5m  # 그룹 내 알림 간격 증가
       repeat_interval: 4h  # 반복 간격 조정
@@ -546,16 +554,16 @@ alertmanager:
         color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
         title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
         text: |
-          {{ range .Alerts }}
-          *알림 내용:* {{ .Labels.alertname }}
-          *심각도:* {{ .Labels.severity }}
+          {{ range .Alerts -}}
+          *알림 유형:* {{ .Labels.alertname }}
+          *심각도:* {{ if eq .Labels.severity "critical" }}심각{{ else if eq .Labels.severity "warning" }}경고{{ else }}{{ .Labels.severity }}{{ end }}
           *네임스페이스:* {{ .Labels.namespace }}
-          {{ if .Labels.application }}*애플리케이션:* {{ .Labels.application }}{{ end }}
-          {{ if .Labels.health_status }}*상태:* {{ .Labels.health_status }}{{ end }}
-          {{ if .Labels.sync_status }}*동기화 상태:* {{ .Labels.sync_status }}{{ end }}
-          {{ if .Annotations.summary }}*요약:* {{ .Annotations.summary }}{{ end }}
-          {{ if .Annotations.description }}*설명:* {{ .Annotations.description }}{{ end }}
-          *시작 시간:* {{ .StartsAt | since }}
+          *애플리케이션:* {{ .Labels.name }}
+          *현재 상태:* {{ .Labels.health_status }}
+          *동기화 상태:* {{ .Labels.sync_status }}
+          *문제 요약:* {{ .Annotations.summary }}
+          *상세 내용:* {{ .Annotations.description }}
+          *발생 시간:* {{ .StartsAt | since }}
           {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
           ---
           {{ end }}
