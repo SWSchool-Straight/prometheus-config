@@ -134,13 +134,13 @@ redisTlsConfig:
 
 serviceMonitor:
   # When set true then use a ServiceMonitor to configure scraping
-  enabled: false
+  enabled: true         # ServiceMonitor 활성화
   multipleTarget: false
-  targets: []
+  targets:
   # for every targets, url and name must be set,
   # an individual additionalRelabeling can be set for every target
-  # - url: "redis://myredis:6379"
-  #   name: "my-redis"
+    - url: "redis://redis-svc-headless.str-redis.svc.cluster.local:6379"  # Redis 주소
+      name: "str-redis"
   # - url: "redis://my-redis-cluster:6379"
   #   name: "bar"
   #   additionalRelabeling:
@@ -152,13 +152,11 @@ serviceMonitor:
   additionalMetricsRelabels: {}
   additionalRelabeling: []
 
-  # Set the namespace the ServiceMonitor should be deployed
-  # namespace: monitoring
-  # Set how frequently Prometheus should scrape
-  # interval: 30s
+  namespace: str-monitoring   # ServiceMonitor가 배포될 네임스페이스
+  interval: 30s   # 스크랩 주기
   # Set path to redis-exporter telemtery-path
   # Please set telemetryPath to /scrape if you are using multiple targets
-  # telemetryPath: /metrics
+  telemetryPath: /metrics   # 메트릭을 수집할 경로
   # Set labels for the ServiceMonitor, use this to define your scrape label for Prometheus Operator
   # labels:
   # Set timeout for scrape
