@@ -360,13 +360,104 @@ additionalPrometheusRules:
           annotations:
             summary: "[{{ $labels.name }}] 애플리케이션 롤백 감지"
             description: "[{{ $labels.name }}] 애플리케이션이 동기화 실패로 인해 롤백이 발생했습니다."
-#  - name: my-rule-file
-#    groups:
-#      - name: my_group
-#        rules:
-#        - record: my_record
-#          expr: 100 * my_record
 
+  - name: chatbot-rule
+    groups:
+      - name: chatbot-group
+        rules:
+        - alert: ChatbotPodDown
+          expr: kube_pod_status_phase{namespace="chatbot", phase=~"Failed|Unknown"} > 0 or absent(kube_pod_status_phase{namespace="chatbot", phase="Running"}) == 1
+          for: 1m
+          labels:
+            severity: critical
+            class: chatbot
+          annotations:
+            summary: "[{{ $labels.pod }}] Chatbot 파드 다운"
+            description: "Chatbot 파드가 정상적으로 실행되지 않고 있습니다."
+
+        - alert: ChatbotHighMemoryUsage
+          expr: container_memory_usage_bytes{namespace="chatbot"} / container_spec_memory_limit_bytes{namespace="chatbot"} * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+            class: chatbot
+          annotations:
+            summary: "[{{ $labels.pod }}] Chatbot 메모리 사용량 높음"
+            description: "Chatbot 파드의 메모리 사용량이 85%를 초과했습니다. (현재 값: {{ $value }}%)"
+
+        - alert: ChatbotHighCPUUsage
+          expr: rate(container_cpu_usage_seconds_total{namespace="chatbot"}[5m]) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            class: chatbot
+          annotations:
+            summary: "[{{ $labels.pod }}] Chatbot CPU 사용량 높음"
+            description: "Chatbot 파드의 CPU 사용량이 80%를 초과했습니다. (현재 값: {{ $value }}%)"
+
+        - alert: ChatbotRestartFrequent
+          expr: increase(kube_pod_container_status_restarts_total{namespace="chatbot"}[1h]) > 2
+          for: 5m
+          labels:
+            severity: warning
+            class: chatbot
+          annotations:
+            summary: "[{{ $labels.pod }}] Chatbot 잦은 재시작 감지"
+            description: "Chatbot 파드가 1시간 동안 2회 이상 재시작되었습니다."
+
+  - name: auth-rule
+    groups:
+      - name: auth-group
+        rules:
+        - alert: AuthPodDown
+          expr: kube_pod_status_phase{namespace="str-dev", pod=~"auth.*", phase=~"Failed|Unknown"} > 0 or absent(kube_pod_status_phase{namespace="str-dev", pod=~"auth.*", phase="Running"}) == 1
+          for: 1m
+          labels:
+            severity: critical
+            class: auth
+          annotations:
+            summary: "[{{ $labels.pod }}] Auth 서비스 파드 다운"
+            description: "Auth 서비스 파드가 정상적으로 실행되지 않고 있습니다."
+
+        - alert: AuthHighMemoryUsage
+          expr: container_memory_usage_bytes{namespace="str-dev", pod=~"auth.*"} / container_spec_memory_limit_bytes{namespace="str-dev", pod=~"auth.*"} * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+            class: auth
+          annotations:
+            summary: "[{{ $labels.pod }}] Auth 서비스 메모리 사용량 높음"
+            description: "Auth 서비스 파드의 메모리 사용량이 85%를 초과했습니다. (현재 값: {{ $value }}%)"
+
+        - alert: AuthHighCPUUsage
+          expr: rate(container_cpu_usage_seconds_total{namespace="str-dev", pod=~"auth.*"}[5m]) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            class: auth
+          annotations:
+            summary: "[{{ $labels.pod }}] Auth 서비스 CPU 사용량 높음"
+            description: "Auth 서비스 파드의 CPU 사용량이 80%를 초과했습니다. (현재 값: {{ $value }}%)"
+
+        - alert: AuthRestartFrequent
+          expr: increase(kube_pod_container_status_restarts_total{namespace="str-dev", pod=~"auth.*"}[1h]) > 2
+          for: 5m
+          labels:
+            severity: warning
+            class: auth
+          annotations:
+            summary: "[{{ $labels.pod }}] Auth 서비스 잦은 재시작 감지"
+            description: "Auth 서비스 파드가 1시간 동안 2회 이상 재시작되었습니다."
+
+        - alert: AuthHighErrorRate
+          expr: sum(rate(http_requests_total{namespace="str-dev", pod=~"auth.*", status=~"5.."}[5m])) / sum(rate(http_requests_total{namespace="str-dev", pod=~"auth.*"}[5m])) * 100 > 5
+          for: 5m
+          labels:
+            severity: warning
+            class: auth
+          annotations:
+            summary: "[{{ $labels.pod }}] Auth 서비스 에러율 높음"
+            description: "Auth 서비스의 HTTP 5xx 에러율이 5%를 초과했습니다. (현재 값: {{ $value }}%)"
 
 ## Provide custom recording or alerting rules to be deployed into the cluster.
 ##
@@ -521,6 +612,12 @@ alertmanager:
       - receiver: 'argocd-slack-alert'
         matchers:
         - class = "argocd"
+      - receiver: 'chatbot-slack-alert'  # 새로운 라우트 추가
+        matchers:
+        - class = "chatbot"
+      - receiver: 'auth-slack-alert'  # auth 서비스 라우트 추가
+        matchers:
+        - class = "auth"
 
     ## 슬랙 알림 일시 중단을 위해 slack_configs 주석 처리
     receivers:
@@ -562,6 +659,42 @@ alertmanager:
       #     {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
       #     ---
       #     {{ end }}
+
+    - name: 'chatbot-slack-alert'
+      slack_configs:
+      - channel: '#metric-alert'
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        title: '[{{ .Status | toUpper }}] Chatbot 알림: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts -}}
+          *알림 유형:* {{ .Labels.alertname }}
+          *심각도:* {{ if eq .Labels.severity "critical" }}🔴심각{{ else if eq .Labels.severity "warning" }}🟡경고{{ else }}{{ .Labels.severity }}{{ end }}
+          *파드:* {{ .Labels.pod }}
+          *문제 요약:* {{ .Annotations.summary }}
+          *상세 내용:* {{ .Annotations.description }}
+          *발생 시간:* {{ .StartsAt | since }}
+          {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
+          ---
+          {{ end }}
+
+    - name: 'auth-slack-alert'
+      slack_configs:
+      - channel: '#metric-alert'
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        title: '[{{ .Status | toUpper }}] Auth 서비스 알림: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts -}}
+          *알림 유형:* {{ .Labels.alertname }}
+          *심각도:* {{ if eq .Labels.severity "critical" }}🔴심각{{ else if eq .Labels.severity "warning" }}🟡경고{{ else }}{{ .Labels.severity }}{{ end }}
+          *파드:* {{ .Labels.pod }}
+          *문제 요약:* {{ .Annotations.summary }}
+          *상세 내용:* {{ .Annotations.description }}
+          *발생 시간:* {{ .StartsAt | since }}
+          {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
+          ---
+          {{ end }}
 
   ## Alertmanager configuration directives (as string type, preferred over the config hash map)
   ## stringConfig will be used only, if tplConfig is true
@@ -4252,6 +4385,68 @@ prometheus:
          - targets:
            - "argocd-server-metrics:8083"  # Argocd 메트릭스 서버의 주소
            - "argocd-application-controller-metrics:8082"
+
+     - job_name: 'chatbot-metrics'  # chatbot 메트릭 수집 설정 추가
+       scrape_interval: 30s
+       metrics_path: /metrics
+       scheme: http
+       kubernetes_sd_configs:
+         - role: pod
+           namespaces:
+             names:
+               - str-dev
+       relabel_configs:
+         - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+           action: keep
+           regex: true
+         - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+           action: replace
+           target_label: __metrics_path__
+           regex: (.+)
+         - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+           action: replace
+           regex: ([^:]+)(?::\d+)?;(\d+)
+           replacement: $1:$2
+           target_label: __address__
+         - action: labelmap
+           regex: __meta_kubernetes_pod_label_(.+)
+         - source_labels: [__meta_kubernetes_namespace]
+           action: replace
+           target_label: kubernetes_namespace
+         - source_labels: [__meta_kubernetes_pod_name]
+           action: replace
+           target_label: kubernetes_pod_name
+
+     - job_name: 'auth-metrics'
+       scrape_interval: 30s
+       metrics_path: /metrics
+       scheme: http
+       kubernetes_sd_configs:
+         - role: pod
+           namespaces:
+             names:
+               - str-dev
+       relabel_configs:
+         - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+           action: keep
+           regex: true
+         - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+           action: replace
+           target_label: __metrics_path__
+           regex: (.+)
+         - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+           action: replace
+           regex: ([^:]+)(?::\d+)?;(\d+)
+           replacement: $1:$2
+           target_label: __address__
+         - action: labelmap
+           regex: __meta_kubernetes_pod_label_(.+)
+         - source_labels: [__meta_kubernetes_namespace]
+           action: replace
+           target_label: kubernetes_namespace
+         - source_labels: [__meta_kubernetes_pod_name]
+           action: replace
+           target_label: kubernetes_pod_name
 
     # - job_name: kube-etcd
     #   kubernetes_sd_configs:
