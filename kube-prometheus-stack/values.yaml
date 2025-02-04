@@ -622,43 +622,43 @@ alertmanager:
     ## 슬랙 알림 일시 중단을 위해 slack_configs 주석 처리
     receivers:
     - name: 'default-slack-alert'
-      # slack_configs:
-      # - channel: '#metric-alert'
-      #   send_resolved: true
-      #   color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
-      #   title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
-      #   text: |
-      #     {{ range .Alerts }}
-      #     *알림 내용:* {{ .Labels.alertname }}
-      #     *심각도:* {{ .Labels.severity }}
-      #     *네임스페이스:* {{ .Labels.namespace }}
-      #     {{ if .Annotations.summary }}*요약:* {{ .Annotations.summary }}{{ end }}
-      #     {{ if .Annotations.description }}*설명:* {{ .Annotations.description }}{{ end }}
-      #     *시작 시간:* {{ .StartsAt | since }}
-      #     {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
-      #     ---
-      #     {{ end }}
+      slack_configs:
+      - channel: '#metric-alert'
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *알림 내용:* {{ .Labels.alertname }}
+          *심각도:* {{ .Labels.severity }}
+          *네임스페이스:* {{ .Labels.namespace }}
+          {{ if .Annotations.summary }}*요약:* {{ .Annotations.summary }}{{ end }}
+          {{ if .Annotations.description }}*설명:* {{ .Annotations.description }}{{ end }}
+          *시작 시간:* {{ .StartsAt | since }}
+          {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
+          ---
+          {{ end }}
 
     - name: 'argocd-slack-alert'
-      # slack_configs:
-      # - channel: '#metric-alert'
-      #   send_resolved: true
-      #   color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
-      #   title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
-      #   text: |
-      #     {{ range .Alerts -}}
-      #     *알림 유형:* {{ .Labels.alertname }}
-      #     *심각도:* {{ if eq .Labels.severity "critical" }}🔴심각{{ else if eq .Labels.severity "warning" }}🟡경고{{ else }}{{ .Labels.severity }}{{ end }}
-      #     *네임스페이스:* {{ .Labels.namespace }}
-      #     *애플리케이션:* {{ .Labels.name }}
-      #     *현재 상태:* {{ .Labels.health_status }}
-      #     *동기화 상태:* {{ .Labels.sync_status }}
-      #     *문제 요약:* {{ .Annotations.summary }}
-      #     *상세 내용:* {{ .Annotations.description }}
-      #     *발생 시간:* {{ .StartsAt | since }}
-      #     {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
-      #     ---
-      #     {{ end }}
+      slack_configs:
+      - channel: '#metric-alert'
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts -}}
+          *알림 유형:* {{ .Labels.alertname }}
+          *심각도:* {{ if eq .Labels.severity "critical" }}🔴 심각{{ else if eq .Labels.severity "warning" }}🟡 경고{{ else }}{{ .Labels.severity }}{{ end }}
+          *네임스페이스:* {{ .Labels.namespace }}
+          *애플리케이션:* {{ .Labels.name }}
+          *현재 상태:* {{ .Labels.health_status }}
+          *동기화 상태:* {{ .Labels.sync_status }}
+          *문제 요약:* {{ .Annotations.summary }}
+          *상세 내용:* {{ .Annotations.description }}
+          *발생 시간:* {{ .StartsAt | since }}
+          {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
+          ---
+          {{ end }}
 
     - name: 'chatbot-slack-alert'
       slack_configs:
@@ -669,7 +669,7 @@ alertmanager:
         text: |
           {{ range .Alerts -}}
           *알림 유형:* {{ .Labels.alertname }}
-          *심각도:* {{ if eq .Labels.severity "critical" }}🔴심각{{ else if eq .Labels.severity "warning" }}🟡경고{{ else }}{{ .Labels.severity }}{{ end }}
+          *심각도:* {{ if eq .Labels.severity "critical" }}🔴 심각{{ else if eq .Labels.severity "warning" }}🟡 경고{{ else }}{{ .Labels.severity }}{{ end }}
           *파드:* {{ .Labels.pod }}
           *문제 요약:* {{ .Annotations.summary }}
           *상세 내용:* {{ .Annotations.description }}
@@ -687,7 +687,7 @@ alertmanager:
         text: |
           {{ range .Alerts -}}
           *알림 유형:* {{ .Labels.alertname }}
-          *심각도:* {{ if eq .Labels.severity "critical" }}🔴심각{{ else if eq .Labels.severity "warning" }}🟡경고{{ else }}{{ .Labels.severity }}{{ end }}
+          *심각도:* {{ if eq .Labels.severity "critical" }}🔴 심각{{ else if eq .Labels.severity "warning" }}🟡 경고{{ else }}{{ .Labels.severity }}{{ end }}
           *파드:* {{ .Labels.pod }}
           *문제 요약:* {{ .Annotations.summary }}
           *상세 내용:* {{ .Annotations.description }}
