@@ -311,7 +311,7 @@ additionalPrometheusRules:
       - name: argocd-group
         rules:
         - alert: ArgocdApplicationHealth
-          expr: argocd_app_info{health!="Healthy"} > 0 or (argocd_app_info{sync_status!="Synced"} > 0 and argocd_app_info{health="Healthy"} > 0)
+          expr: argocd_app_info{health_status!="Healthy"} > 0 or (argocd_app_info{sync_status!="Synced"} > 0 and argocd_app_info{health_status="Healthy"} > 0)
           for: 5m
           labels:
             severity: critical
@@ -320,10 +320,10 @@ additionalPrometheusRules:
             summary: "[{{ $labels.name }}] ArgoCD 애플리케이션 상태 알림"
             description: |
               애플리케이션 이름: {{ $labels.name }}
-              Health 상태: {{ $labels.health }}
+              Health 상태: {{ $labels.health_status }}
               동기화 상태: {{ $labels.sync_status }}
-              {{ if $labels.health != "Healthy" }}애플리케이션이 비정상 상태입니다.{{ end }}
-              {{ if $labels.sync_status != "Synced" }}애플리케이션이 동기화되지 않았습니다.{{ end }}
+              {{ if ne $labels.health_status "Healthy" }}애플리케이션이 비정상 상태입니다.{{ end }}
+              {{ if ne $labels.sync_status "Synced" }}애플리케이션이 동기화되지 않았습니다.{{ end }}
         - alert: ArgoAppNotSynced
           expr: argocd_app_info{sync_status!="Synced"} > 0
           for: 12h
@@ -366,7 +366,7 @@ additionalPrometheusRules:
       - name: chatbot-group
         rules:
         - alert: ChatbotPodDown
-          expr: kube_pod_status_phase{namespace="chatbot", phase=~"Failed|Unknown"} > 0 or absent(kube_pod_status_phase{namespace="chatbot", phase="Running"}) == 1
+          expr: sum(kube_pod_status_phase{namespace="str-dev", pod=~"chatbot.*", phase=~"Failed|Unknown"}) > 0 or absent(kube_pod_status_phase{namespace="str-dev", pod=~"chatbot.*", phase="Running"}) == 1
           for: 1m
           labels:
             severity: critical
@@ -410,7 +410,7 @@ additionalPrometheusRules:
       - name: auth-group
         rules:
         - alert: AuthPodDown
-          expr: kube_pod_status_phase{namespace="str-dev", pod=~"auth.*", phase=~"Failed|Unknown"} > 0 or absent(kube_pod_status_phase{namespace="str-dev", pod=~"auth.*", phase="Running"}) == 1
+          expr: sum(kube_pod_status_phase{namespace="str-dev", pod=~"auth.*", phase=~"Failed|Unknown"}) > 0 or absent(kube_pod_status_phase{namespace="str-dev", pod=~"auth.*", phase="Running"}) == 1
           for: 1m
           labels:
             severity: critical
@@ -4065,7 +4065,9 @@ prometheus:
 
     ## enable --web.enable-remote-write-receiver flag on prometheus-server
     ##
-    enableRemoteWriteReceiver: false
+    enableRemoteWriteReceiver: true   # Remote Write Receiver 활성화
+    enableFeatures:
+      - native-histograms   # Histogram 데이터 저장 활성화
 
     ## Name of the external label used to denote replica name
     ##
