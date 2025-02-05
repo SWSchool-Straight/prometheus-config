@@ -475,7 +475,7 @@ global:
     create: true
 
     ## Create ClusterRoles that extend the existing view, edit and admin ClusterRoles to interact with prometheus-operator CRDs
-    ## Ref: https://kubernetes.io/docs/reference/access-authn-authz/#aggregated-clusterroles
+    ## Ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles
     createAggregateClusterRoles: false
     pspEnabled: false
     pspAnnotations: {}
@@ -2400,12 +2400,6 @@ kubeScheduler:
     ## defines the labels which are transferred from the associated Kubernetes Service object onto the ingested metrics.
     ## https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#servicemonitor
     targetLabels: []
-
-## Component scraping kube proxy
-##
-kubeProxy:
-  enabled: true  # kube-proxy 모니터링 활성화
-  metricsBindAddress: "0.0.0.0:10249"
 
 ## Component scraping kube state metrics
 ##
@@ -5376,9 +5370,3 @@ extraManifests: []
   #     name: prometheus-extra
   #   data:
   #     extra-data: "value"
-
-kubeProxy:
-  enabled: true
-  clusterCIDR: "172.16.0.0/16"
-  metricsBindAddress: "0.0.0.0:10249"
-  # ... 기타 설정 값들 ...
