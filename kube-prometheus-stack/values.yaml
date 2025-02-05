@@ -2409,6 +2409,12 @@ kubeProxy:
     enabled: true
     port: 10249
     targetPort: 10249
+    # Kubernetes 서비스에서 IPv4와 IPv6를 동시에 지원하기 위한 설정
+    ipDualStack:
+      enabled: false
+      ipFamilies: ["IPv6", "IPv4"]
+      ipFamilyPolicy: "PreferDualStack"
+  
   serviceMonitor:
     enabled: true
     # 메트릭 수집 설정
