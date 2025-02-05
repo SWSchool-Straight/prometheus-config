@@ -2404,94 +2404,24 @@ kubeScheduler:
 ## Component scraping kube proxy
 ##
 kubeProxy:
-  enabled: true
-
-  ## If your kube proxy is not deployed as a pod, specify IPs it can be found on
-  ##
-  endpoints: []
-  # - 10.141.4.22
-  # - 10.141.4.23
-  # - 10.141.4.24
-
+  enabled: true  # kube-proxy 모니터링 활성화
   service:
     enabled: true
     port: 10249
     targetPort: 10249
-    ipDualStack:
-      enabled: false
-      ipFamilies: ["IPv6", "IPv4"]
-      ipFamilyPolicy: "PreferDualStack"
-    # selector:
-    #   k8s-app: kube-proxy
-
   serviceMonitor:
     enabled: true
-    ## Scrape interval. If not set, the Prometheus default scrape interval is used.
-    ##
-    interval: ""
-
-    ## SampleLimit defines per-scrape limit on number of scraped samples that will be accepted.
-    ##
-    sampleLimit: 0
-
-    ## TargetLimit defines a limit on the number of scraped targets that will be accepted.
-    ##
-    targetLimit: 0
-
-    ## Per-scrape limit on number of labels that will be accepted for a sample. Only valid in Prometheus versions 2.27.0 and newer.
-    ##
-    labelLimit: 0
-
-    ## Per-scrape limit on length of labels name that will be accepted for a sample. Only valid in Prometheus versions 2.27.0 and newer.
-    ##
-    labelNameLengthLimit: 0
-
-    ## Per-scrape limit on length of labels value that will be accepted for a sample. Only valid in Prometheus versions 2.27.0 and newer.
-    ##
-    labelValueLengthLimit: 0
-
-    ## proxyUrl: URL of a proxy that should be used for scraping.
-    ##
-    proxyUrl: ""
-
-    ## port: Name of the port the metrics will be scraped from
-    ##
-    port: http-metrics
-
-    jobLabel: jobLabel
-    selector: {}
-    #  matchLabels:
-    #    k8s-app: kube-proxy
-
-    ## Enable scraping kube-proxy over https.
-    ## Requires proper certs (not self-signed) and delegated authentication/authorization checks
-    ##
-    https: false
-
-    ## MetricRelabelConfigs to apply to samples after scraping, but before ingestion.
-    ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#relabelconfig
-    ##
+    # 메트릭 수집 설정
     metricRelabelings: []
-    # - action: keep
-    #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-    #   sourceLabels: [__name__]
-
-    ## RelabelConfigs to apply to samples before scraping
-    ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#relabelconfig
-    ##
     relabelings: []
-    # - action: keep
-    #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-    #   sourceLabels: [__name__]
+    interval: 30s
+    proxyUrl: ""
+    scheme: http
+    enableHttp2: true
 
-    ## Additional labels
-    ##
-    additionalLabels: {}
-    #  foo: bar
-
-    ## defines the labels which are transferred from the associated Kubernetes Service object onto the ingested metrics.
-    ## https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#servicemonitor
-    targetLabels: []
+  # kube-proxy 설정
+  config:
+    metricsBindAddress: "0.0.0.0:10249"
 
 ## Component scraping kube state metrics
 ##
