@@ -28,6 +28,9 @@ commonLabels: {}
 # scmhash: abc123
 # myLabel: aakkmd
 
+kubeProxy:
+  enabled: false
+
 ## Install Prometheus Operator CRDs
 ##
 crds:
@@ -184,14 +187,14 @@ defaultRules:
     kubeApiserverSlos: true
     kubeControllerManager: true
     kubelet: true
-    kubeProxy: true
+    kubeProxy: false
     kubePrometheusGeneral: true
     kubePrometheusNodeRecording: true
     kubernetesApps: true
     kubernetesResources: true
     kubernetesStorage: true
     kubernetesSystem: true
-    kubeSchedulerAlerting: true
+    kubeSchedulerAlerting: false
     kubeSchedulerRecording: true
     kubeStateMetrics: true
     network: true
