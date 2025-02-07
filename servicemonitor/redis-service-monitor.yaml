@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis-exporter
+  namespace: str-monitoring  # Prometheus Operator가 설치된 네임스페이스
+  labels:
+    release: prometheus  # Prometheus Operator 설치 시 사용한 레이블과 일치시킵니다.
+spec:
+  selector:
+    matchLabels:
+      app: redis-exporter
+  namespaceSelector:
+    matchNames:
+    - str-redis  # redis-exporter가 있는 네임스페이스를 지정
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
