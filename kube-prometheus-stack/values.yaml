@@ -308,169 +308,153 @@ defaultRules:
 
 ## Deprecated way to provide custom recording or alerting rules to be deployed into the cluster.
 ##
-additionalPrometheusRules:
-  - name: argocd-rule
-    groups: 
-      - name: argocd-group
-        rules:
-        - alert: ArgocdApplicationHealth
-          expr: argocd_app_info{health_status!="Healthy"} > 0 or (argocd_app_info{sync_status!="Synced"} > 0 and argocd_app_info{health_status="Healthy"} > 0)
-          for: 5m
-          labels:
-            severity: critical
-            class: argocd
-          annotations:
-            summary: "[{{ $labels.name }}] ArgoCD 애플리케이션 상태 알림"
-            description: |
-              애플리케이션 이름: {{ $labels.name }}
-              Health 상태: {{ $labels.health_status }}
-              동기화 상태: {{ $labels.sync_status }}
-              {{ if ne $labels.health_status "Healthy" }}애플리케이션이 비정상 상태입니다.{{ end }}
-              {{ if ne $labels.sync_status "Synced" }}애플리케이션이 동기화되지 않았습니다.{{ end }}
-        - alert: ArgoAppNotSynced
-          expr: argocd_app_info{sync_status!="Synced"} > 0
-          for: 12h
-          labels:
-            severity: warning
-            class: argocd
-          annotations:
-            summary: "[{{ $labels.name }}] 애플리케이션 동기화 실패"
-            description: "[{{ $labels.name }}] 애플리케이션이 12시간 이상 동기화되지 않았습니다."
-        - alert: ArgocdServerDown
-          expr: up{job="argocd-server-metrics"} == 0
-          for: 1m
-          labels:
-            severity: critical
-            class: argocd
-          annotations:
-            summary: "ArgoCD 서버 다운"
-            description: "ArgoCD 서버에 접근할 수 없습니다."
-        - alert: ArgocdApplicationControllerDown
-          expr: up{job="argocd-application-controller-metrics"} == 0
-          for: 1m
-          labels:
-            severity: critical
-            class: argocd
-          annotations:
-            summary: "ArgoCD 애플리케이션 컨트롤러 다운"
-            description: "ArgoCD 애플리케이션 컨트롤러에 접근할 수 없습니다."
-        - alert: ArgoAppRollback
-          expr: argocd_app_sync_total{phase="Failed"} > 0
-          for: 5m
-          labels:
-            severity: warning
-            class: argocd
-          annotations:
-            summary: "[{{ $labels.name }}] 애플리케이션 롤백 감지"
-            description: "[{{ $labels.name }}] 애플리케이션이 동기화 실패로 인해 롤백이 발생했습니다."
-
-  - name: chatbot-rule
-    groups:
-      - name: chatbot-group
-        rules:
-        - alert: ChatbotPodDown
-          expr: sum(kube_pod_status_phase{namespace="str-dev", pod=~"chatbot.*", phase=~"Failed|Unknown"}) > 0 or absent(kube_pod_status_phase{namespace="str-dev", pod=~"chatbot.*", phase="Running"}) == 1
-          for: 1m
-          labels:
-            severity: critical
-            class: chatbot
-          annotations:
-            summary: "[{{ $labels.pod }}] Chatbot 파드 다운"
-            description: "Chatbot 파드가 정상적으로 실행되지 않고 있습니다."
-
-        - alert: ChatbotHighMemoryUsage
-          expr: container_memory_usage_bytes{namespace="chatbot"} / container_spec_memory_limit_bytes{namespace="chatbot"} * 100 > 85
-          for: 5m
-          labels:
-            severity: warning
-            class: chatbot
-          annotations:
-            summary: "[{{ $labels.pod }}] Chatbot 메모리 사용량 높음"
-            description: "Chatbot 파드의 메모리 사용량이 85%를 초과했습니다. (현재 값: {{ $value }}%)"
-
-        - alert: ChatbotHighCPUUsage
-          expr: rate(container_cpu_usage_seconds_total{namespace="chatbot"}[5m]) * 100 > 80
-          for: 5m
-          labels:
-            severity: warning
-            class: chatbot
-          annotations:
-            summary: "[{{ $labels.pod }}] Chatbot CPU 사용량 높음"
-            description: "Chatbot 파드의 CPU 사용량이 80%를 초과했습니다. (현재 값: {{ $value }}%)"
-
-        - alert: ChatbotRestartFrequent
-          expr: increase(kube_pod_container_status_restarts_total{namespace="chatbot"}[1h]) > 2
-          for: 5m
-          labels:
-            severity: warning
-            class: chatbot
-          annotations:
-            summary: "[{{ $labels.pod }}] Chatbot 잦은 재시작 감지"
-            description: "Chatbot 파드가 1시간 동안 2회 이상 재시작되었습니다."
-
-  - name: auth-rule
-    groups:
-      - name: auth-group
-        rules:
-        - alert: AuthPodDown
-          expr: sum(kube_pod_status_phase{namespace="str-dev", pod=~"auth.*", phase=~"Failed|Unknown"}) > 0 or absent(kube_pod_status_phase{namespace="str-dev", pod=~"auth.*", phase="Running"}) == 1
-          for: 1m
-          labels:
-            severity: critical
-            class: auth
-          annotations:
-            summary: "[{{ $labels.pod }}] Auth 서비스 파드 다운"
-            description: "Auth 서비스 파드가 정상적으로 실행되지 않고 있습니다."
-
-        - alert: AuthHighMemoryUsage
-          expr: container_memory_usage_bytes{namespace="str-dev", pod=~"auth.*"} / container_spec_memory_limit_bytes{namespace="str-dev", pod=~"auth.*"} * 100 > 85
-          for: 5m
-          labels:
-            severity: warning
-            class: auth
-          annotations:
-            summary: "[{{ $labels.pod }}] Auth 서비스 메모리 사용량 높음"
-            description: "Auth 서비스 파드의 메모리 사용량이 85%를 초과했습니다. (현재 값: {{ $value }}%)"
-
-        - alert: AuthHighCPUUsage
-          expr: rate(container_cpu_usage_seconds_total{namespace="str-dev", pod=~"auth.*"}[5m]) * 100 > 80
-          for: 5m
-          labels:
-            severity: warning
-            class: auth
-          annotations:
-            summary: "[{{ $labels.pod }}] Auth 서비스 CPU 사용량 높음"
-            description: "Auth 서비스 파드의 CPU 사용량이 80%를 초과했습니다. (현재 값: {{ $value }}%)"
-
-        - alert: AuthRestartFrequent
-          expr: increase(kube_pod_container_status_restarts_total{namespace="str-dev", pod=~"auth.*"}[1h]) > 2
-          for: 5m
-          labels:
-            severity: warning
-            class: auth
-          annotations:
-            summary: "[{{ $labels.pod }}] Auth 서비스 잦은 재시작 감지"
-            description: "Auth 서비스 파드가 1시간 동안 2회 이상 재시작되었습니다."
-
-        - alert: AuthHighErrorRate
-          expr: sum(rate(http_requests_total{namespace="str-dev", pod=~"auth.*", status=~"5.."}[5m])) / sum(rate(http_requests_total{namespace="str-dev", pod=~"auth.*"}[5m])) * 100 > 5
-          for: 5m
-          labels:
-            severity: warning
-            class: auth
-          annotations:
-            summary: "[{{ $labels.pod }}] Auth 서비스 에러율 높음"
-            description: "Auth 서비스의 HTTP 5xx 에러율이 5%를 초과했습니다. (현재 값: {{ $value }}%)"
+additionalPrometheusRules: {}
 
 ## Provide custom recording or alerting rules to be deployed into the cluster.
 ##
-additionalPrometheusRulesMap: {}
-#  rule-name:
-#    groups:
-#    - name: my_group
-#      rules:
-#      - record: my_record
-#        expr: 100 * my_record
+additionalPrometheusRulesMap:
+  argocd-rules:
+    groups:
+      - name: argocd.rules
+        rules:
+          - alert: ArgocdApplicationHealth
+            expr: argocd_app_info{health_status!="Healthy"} > 0 or (argocd_app_info{sync_status!="Synced"} > 0 and argocd_app_info{health_status="Healthy"} > 0)
+            for: 5m
+            labels:
+              severity: critical
+              class: argocd
+            annotations:
+              summary: "[{{ $labels.name }}] ArgoCD 애플리케이션 상태 알림"
+              description: |
+                애플리케이션 이름: {{ $labels.name }}
+                Health 상태: {{ $labels.health_status }}
+                동기화 상태: {{ $labels.sync_status }}
+                {{ if ne $labels.health_status "Healthy" }}애플리케이션이 비정상 상태입니다.{{ end }}
+                {{ if ne $labels.sync_status "Synced" }}애플리케이션이 동기화되지 않았습니다.{{ end }}
+          - alert: ArgoAppNotSynced
+            expr: argocd_app_info{sync_status!="Synced"} > 0
+            for: 12h
+            labels:
+              severity: warning
+              class: argocd
+            annotations:
+              summary: "[{{ $labels.name }}] 애플리케이션 동기화 실패"
+              description: "[{{ $labels.name }}] 애플리케이션이 12시간 이상 동기화되지 않았습니다."
+          - alert: ArgocdServerDown
+            expr: up{job="argocd-server-metrics"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              class: argocd
+            annotations:
+              summary: "ArgoCD 서버 다운"
+              description: "ArgoCD 서버에 접근할 수 없습니다."
+          - alert: ArgocdApplicationControllerDown
+            expr: up{job="argocd-application-controller-metrics"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              class: argocd
+            annotations:
+              summary: "ArgoCD 애플리케이션 컨트롤러 다운"
+              description: "ArgoCD 애플리케이션 컨트롤러에 접근할 수 없습니다."
+          - alert: ArgoAppRollback
+            expr: argocd_app_sync_total{phase="Failed"} > 0
+            for: 5m
+            labels:
+              severity: warning
+              class: argocd
+            annotations:
+              summary: "[{{ $labels.name }}] 애플리케이션 롤백 감지"
+              description: "[{{ $labels.name }}] 애플리케이션이 동기화 실패로 인해 롤백이 발생했습니다."
+
+  chatbot-rules:
+    groups:
+      - name: chatbot.rules
+        rules:
+          - alert: ChatbotPodDown
+            expr: sum(kube_pod_status_phase{namespace="str-dev", pod=~"chatbot.*", phase=~"Failed|Unknown"}) > 0 or absent(kube_pod_status_phase{namespace="str-dev", pod=~"chatbot.*", phase="Running"}) == 1
+            for: 1m
+            labels:
+              severity: critical
+              class: chatbot
+            annotations:
+              summary: "[{{ $labels.pod }}] Chatbot 파드 다운"
+              description: "Chatbot 파드가 정상적으로 실행되지 않고 있습니다."
+
+          - alert: ChatbotHighMemoryUsage
+            expr: container_memory_usage_bytes{namespace="chatbot"} / container_spec_memory_limit_bytes{namespace="chatbot"} * 100 > 85
+            for: 5m
+            labels:
+              severity: warning
+              class: chatbot
+            annotations:
+              summary: "[{{ $labels.pod }}] Chatbot 메모리 사용량 높음"
+              description: "Chatbot 파드의 메모리 사용량이 85%를 초과했습니다. (현재 값: {{ $value }}%)"
+
+          - alert: ChatbotHighCPUUsage
+            expr: rate(container_cpu_usage_seconds_total{namespace="chatbot"}[5m]) * 100 > 80
+            for: 5m
+            labels:
+              severity: warning
+              class: chatbot
+            annotations:
+              summary: "[{{ $labels.pod }}] Chatbot CPU 사용량 높음"
+              description: "Chatbot 파드의 CPU 사용량이 80%를 초과했습니다. (현재 값: {{ $value }}%)"
+
+          - alert: ChatbotRestartFrequent
+            expr: increase(kube_pod_container_status_restarts_total{namespace="chatbot"}[1h]) > 2
+            for: 5m
+            labels:
+              severity: warning
+              class: chatbot
+            annotations:
+              summary: "[{{ $labels.pod }}] Chatbot 잦은 재시작 감지"
+              description: "Chatbot 파드가 1시간 동안 2회 이상 재시작되었습니다."
+
+  auth-rules:
+    groups:
+      - name: auth.rules
+        rules:
+          - alert: AuthPodDown
+            expr: sum(kube_pod_status_phase{namespace="str-dev", pod=~"auth.*", phase=~"Failed|Unknown"}) > 0 or absent(kube_pod_status_phase{namespace="str-dev", pod=~"auth.*", phase="Running"}) == 1
+            for: 1m
+            labels:
+              severity: critical
+              class: auth
+            annotations:
+              summary: "[{{ $labels.pod }}] Auth 서비스 파드 다운"
+              description: "Auth 서비스 파드가 정상적으로 실행되지 않고 있습니다."
+
+          - alert: AuthHighMemoryUsage
+            expr: container_memory_usage_bytes{namespace="str-dev", pod=~"auth.*"} / container_spec_memory_limit_bytes{namespace="str-dev", pod=~"auth.*"} * 100 > 85
+            for: 5m
+            labels:
+              severity: warning
+              class: auth
+            annotations:
+              summary: "[{{ $labels.pod }}] Auth 서비스 메모리 사용량 높음"
+              description: "Auth 서비스 파드의 메모리 사용량이 85%를 초과했습니다. (현재 값: {{ $value }}%)"
+
+          - alert: AuthHighCPUUsage
+            expr: rate(container_cpu_usage_seconds_total{namespace="str-dev", pod=~"auth.*"}[5m]) * 100 > 80
+            for: 5m
+            labels:
+              severity: warning
+              class: auth
+            annotations:
+              summary: "[{{ $labels.pod }}] Auth 서비스 CPU 사용량 높음"
+              description: "Auth 서비스 파드의 CPU 사용량이 80%를 초과했습니다. (현재 값: {{ $value }}%)"
+
+          - alert: AuthRestartFrequent
+            expr: increase(kube_pod_container_status_restarts_total{namespace="str-dev", pod=~"auth.*"}[1h]) > 2
+            for: 5m
+            labels:
+              severity: warning
+              class: auth
+            annotations:
+              summary: "[{{ $labels.pod }}] Auth 서비스 잦은 재시작 감지"
+              description: "Auth 서비스 파드가 1시간 동안 2회 이상 재시작되었습니다."
 
 ##
 global:
