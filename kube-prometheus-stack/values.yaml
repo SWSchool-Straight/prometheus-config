@@ -633,7 +633,6 @@ prometheus-windows-exporter:
   config: |-
     collectors:
       enabled: '[defaults],memory,container'
-
 ## Configuration for alertmanager
 ## ref: https://prometheus.io/docs/alerting/alertmanager/
 ##
@@ -697,15 +696,9 @@ alertmanager:
           - severity = "critical"
           group_wait: 30s  # 긴급 알림은 더 빠르게
           repeat_interval: 4h
-        - receiver: 'argocd-slack-alert'
+        - receiver: 'default-slack-alert'
           matchers:
-          - class = "argocd"
-        - receiver: 'chatbot-slack-alert'
-          matchers:
-          - class = "chatbot"
-        - receiver: 'auth-slack-alert'
-          matchers:
-          - class = "auth"
+          - class =~ "argocd|chatbot|auth"
 
       receivers:
       - name: 'critical-slack-alert'
@@ -716,9 +709,12 @@ alertmanager:
           title: '🚨 [긴급] {{ .GroupLabels.alertname }}'
           text: |
             {{ range .Alerts -}}
-            *심각도:* 🔴 긴급
-            *문제 발생:* {{ .Labels.namespace }}/{{ .Labels.pod }}
-            *알림 내용:* {{ .Annotations.summary }}
+            *알림 유형:* {{ .Labels.alertname }}
+            *심각도:* {{ if eq .Status "resolved" }}:초록색_원: 해결됨{{ else }}:빨간색_원: 심각{{ end }}
+            *네임스페이스:* {{ .Labels.namespace }}
+            *애플리케이션:* {{ .Labels.name }}
+            *현재 상태:* {{ .Labels.health_status }}
+            *요약:* {{ .Annotations.summary }}
             
             {{ if .Annotations.description }}*상세 설명:*
             {{ .Annotations.description }}{{ end }}
@@ -5352,3 +5348,4 @@ extraManifests: []
   #     name: prometheus-extra
   #   data:
   #     extra-data: "value"
+
