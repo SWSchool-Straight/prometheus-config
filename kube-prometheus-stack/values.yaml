@@ -581,7 +581,7 @@ global:
     create: true
 
     ## Create ClusterRoles that extend the existing view, edit and admin ClusterRoles to interact with prometheus-operator CRDs
-    ## Ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles
+    ## Ref: https://kubernetes.io/docs/reference/access-authn-authz/#aggregated-clusterroles
     createAggregateClusterRoles: false
     pspEnabled: false
     pspAnnotations: {}
@@ -678,17 +678,18 @@ alertmanager:
   ## Alertmanager configuration directives
   ## ref: https://prometheus.io/docs/alerting/configuration/#configuration-file
   ##      https://prometheus.io/webtools/alerting/routing-tree-editor/
-  ##
+  ##      https://prometheus.io/docs/alerting/notifications/
+  ##      https://prometheus.io/docs/alerting/notification_examples/
   config:
     global:
       resolve_timeout: 5m
       slack_api_url: 'https://hooks.slack.com/services/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'
 
     route:
-        group_by: ['alertname', 'namespace', 'severity']
-        group_wait: 45s
-        group_interval: 10m
-        repeat_interval: 8h
+      group_by: ['alertname', 'namespace', 'severity']
+      group_wait: 45s
+      group_interval: 10m
+      repeat_interval: 8h
       receiver: 'default-slack-alert'
       routes:
       - receiver: 'critical-slack-alert'
@@ -748,7 +749,8 @@ alertmanager:
   ## stringConfig will be used only, if tplConfig is true
   ## ref: https://prometheus.io/docs/alerting/configuration/#configuration-file
   ##      https://prometheus.io/webtools/alerting/routing-tree-editor/
-  ##
+  ##      https://prometheus.io/docs/alerting/notifications/
+  ##      https://prometheus.io/docs/alerting/notification_examples/
   stringConfig: ""
 
   ## Pass the Alertmanager configuration directives through Helm's templating
