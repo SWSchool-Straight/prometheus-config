@@ -684,65 +684,65 @@ alertmanager:
       resolve_timeout: 5m
       slack_api_url: 'https://hooks.slack.com/services/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'
 
-      route:
-        group_by: ['alertname', 'namespace', 'severity']  # severity 추가
-        group_wait: 45s  # 초기 대기 시간 조정
-        group_interval: 10m  # 그룹 알림 간격 조정
-        repeat_interval: 8h  # 반복 간격 증가
-        receiver: 'default-slack-alert'
-        routes:
-        - receiver: 'critical-slack-alert'
-          matchers:
-          - severity = "critical"
-          group_wait: 30s  # 긴급 알림은 더 빠르게
-          repeat_interval: 4h
-        - receiver: 'default-slack-alert'
-          matchers:
-          - class =~ "argocd|chatbot|auth"
+    route:
+        group_by: ['alertname', 'namespace', 'severity']
+        group_wait: 45s
+        group_interval: 10m
+        repeat_interval: 8h
+      receiver: 'default-slack-alert'
+      routes:
+      - receiver: 'critical-slack-alert'
+        matchers:
+        - severity =~ "critical"
+        group_wait: 30s
+        repeat_interval: 4h
+      - receiver: 'default-slack-alert'
+        matchers:
+        - class =~ "argocd|chatbot|auth"
 
-      receivers:
-      - name: 'critical-slack-alert'
-        slack_configs:
-        - channel: '#metric-alert'
-          send_resolved: true
-          color: '{{ if eq .Status "firing" }}#FF0000{{ else }}#36A64F{{ end }}'
-          title: '🚨 [긴급] {{ .GroupLabels.alertname }}'
-          text: |
-            {{ range .Alerts -}}
-            *알림 유형:* {{ .Labels.alertname }}
-            *심각도:* {{ if eq .Status "resolved" }}:초록색_원: 해결됨{{ else }}:빨간색_원: 심각{{ end }}
-            *네임스페이스:* {{ .Labels.namespace }}
-            *애플리케이션:* {{ .Labels.name }}
-            *현재 상태:* {{ .Labels.health_status }}
-            *요약:* {{ .Annotations.summary }}
-            
-            {{ if .Annotations.description }}*상세 설명:*
-            {{ .Annotations.description }}{{ end }}
-            
-            {{ if .Annotations.action_guide }}*조치 가이드:*
-            {{ .Annotations.action_guide }}{{ end }}
-            
-            *발생 시간:* {{ .StartsAt | since }}
-            {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
-            ---
-            {{ end }}
+    receivers:
+    - name: 'critical-slack-alert'
+      slack_configs:
+      - channel: '#metric-alert'
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}#FF0000{{ else }}#36A64F{{ end }}'
+        title: '🚨 [긴급] {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts -}}
+          *알림 유형:* {{ .Labels.alertname }}
+          *심각도:* {{ if eq .Status "resolved" }}:초록색_원: 해결됨{{ else }}:빨간색_원: 심각{{ end }}
+          *네임스페이스:* {{ .Labels.namespace }}
+          *애플리케이션:* {{ .Labels.name }}
+          *현재 상태:* {{ .Labels.health_status }}
+          *요약:* {{ .Annotations.summary }}
+          
+          {{ if .Annotations.description }}*상세 설명:*
+          {{ .Annotations.description }}{{ end }}
+          
+          {{ if .Annotations.action_guide }}*조치 가이드:*
+          {{ .Annotations.action_guide }}{{ end }}
+          
+          *발생 시간:* {{ .StartsAt | since }}
+          {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
+          ---
+          {{ end }}
 
-      - name: 'default-slack-alert'
-        slack_configs:
-        - channel: '#metric-alert'
-          send_resolved: true
-          color: '{{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "warning" }}#FFA500{{ else }}#FF0000{{ end }}{{ else }}#36A64F{{ end }}'
-          title: '[{{ .Status | toUpper }}] {{ .CommonLabels.severity | toUpper }} - {{ .GroupLabels.alertname }}'
-          text: |
-            {{ range .Alerts -}}
-            *알림 유형:* {{ .Labels.alertname }}
-            *심각도:* {{ if eq .Status "resolved" }}:초록색_원: 해결됨{{ else if eq .Labels.severity "critical" }}:빨간색_원: 심각{{ else if eq .Labels.severity "warning" }}:큰_노란색_원: 경고{{ else }}{{ .Labels.severity }}{{ end }}
-            *네임스페이스:* {{ .Labels.namespace }}
-            *애플리케이션:* {{ .Labels.name }}
-            *현재 상태:* {{ .Labels.health_status }}
-            {{ if .Annotations.description }}*자세히 표시*{{ end }}
-            ---
-            {{ end }}
+    - name: 'default-slack-alert'
+      slack_configs:
+      - channel: '#metric-alert'
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "warning" }}#FFA500{{ else }}#FF0000{{ end }}{{ else }}#36A64F{{ end }}'
+        title: '[{{ .Status | toUpper }}] {{ .CommonLabels.severity | toUpper }} - {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts -}}
+          *알림 유형:* {{ .Labels.alertname }}
+          *심각도:* {{ if eq .Status "resolved" }}:초록색_원: 해결됨{{ else if eq .Labels.severity "critical" }}:빨간색_원: 심각{{ else if eq .Labels.severity "warning" }}:큰_노란색_원: 경고{{ else }}{{ .Labels.severity }}{{ end }}
+          *네임스페이스:* {{ .Labels.namespace }}
+          *애플리케이션:* {{ .Labels.name }}
+          *현재 상태:* {{ .Labels.health_status }}
+          {{ if .Annotations.description }}*자세히 표시*{{ end }}
+          ---
+          {{ end }}
 
   ## Alertmanager configuration directives (as string type, preferred over the config hash map)
   ## stringConfig will be used only, if tplConfig is true
@@ -1501,7 +1501,7 @@ grafana:
       ##
       annotations: {}
       multicluster:
-        global:
+global:
           enabled: false
         etcd:
           enabled: false
@@ -2521,7 +2521,7 @@ kube-state-metrics:
       #   action: replace
 
   selfMonitor:
-    enabled: false
+  enabled: false
 
 ## Deploy node exporter as a daemonset to all nodes
 ##
