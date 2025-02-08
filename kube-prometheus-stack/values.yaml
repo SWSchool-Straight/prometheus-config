@@ -319,7 +319,8 @@ additionalPrometheusRulesMap:
       - name: argocd.rules
         rules:
           - alert: ArgocdApplicationHealth
-            expr: argocd_app_info{health_status!="Healthy"} > 0 or (argocd_app_info{sync_status!="Synced"} > 0 and argocd_app_info{health_status="Healthy"} > 0)
+            expr: |
+              (argocd_app_info{health_status!="Healthy"} > 0) or (argocd_app_info{sync_status!="Synced", health_status="Healthy"} > 0 and on(name) absent(argocd_app_info{health_status!="Healthy"}))
             for: 5m
             labels:
               severity: critical
@@ -333,7 +334,8 @@ additionalPrometheusRulesMap:
                 {{ if ne $labels.health_status "Healthy" }}애플리케이션이 비정상 상태입니다.{{ end }}
                 {{ if ne $labels.sync_status "Synced" }}애플리케이션이 동기화되지 않았습니다.{{ end }}
           - alert: ArgoAppNotSynced
-            expr: argocd_app_info{sync_status!="Synced"} > 0
+            expr: |
+              argocd_app_info{sync_status!="Synced", health_status="Healthy"} > 0 and on(name) absent(argocd_app_info{health_status!="Healthy"})
             for: 12h
             labels:
               severity: warning
