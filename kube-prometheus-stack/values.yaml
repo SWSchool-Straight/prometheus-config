@@ -170,41 +170,46 @@ customRules: {}
 defaultRules:
   create: true
   rules:
-    alertmanager: false  # alertmanager 규칙 비활성화
-    etcd: false
-    configReloaders: true
-    general: true
-    k8sContainerCpuUsageSecondsTotal: true
-    k8sContainerMemoryCache: true
-    k8sContainerMemoryRss: true
-    k8sContainerMemorySwap: true
-    k8sContainerResource: true
-    k8sContainerMemoryWorkingSetBytes: true
-    k8sPodOwner: true
-    kubeApiserverAvailability: true
-    kubeApiserverBurnrate: true
-    kubeApiserverHistogram: true
-    kubeApiserverSlos: true
-    kubeControllerManager: false
-    kubelet: true
-    kubeProxy: false
-    kubePrometheusGeneral: true
-    kubePrometheusNodeRecording: true
-    kubernetesApps: true
-    kubernetesResources: true
-    kubernetesStorage: true
-    kubernetesSystem: true
-    kubeSchedulerAlerting: false
-    kubeSchedulerRecording: true
-    kubeStateMetrics: true
-    network: true
-    node: true
-    nodeExporterAlerting: true
-    nodeExporterRecording: true
-    prometheus: true
-    prometheusOperator: true
-    windows: true
-    kubeScheduler: false
+    # 핵심 시스템 모니터링
+    kubeApiserver: true          # API 서버 가용성 (중요)
+    kubernetesSystem: true       # 핵심 k8s 컴포넌트
+    kubernetesResources: true    # 리소스 사용량
+    node: true                   # 노드 상태
+    
+    # 애플리케이션 관련
+    kubernetesApps: true        # 디플로이먼트, 스테이트풀셋 등
+    
+    # 비활성화할 규칙들
+    alertmanager: false         # AlertManager 자체 모니터링
+    etcd: false                # etcd 모니터링 (외부 etcd 사용 시)
+    general: false             # 일반적인 규칙
+    kubePrometheusNodeAlerting: false
+    kubePrometheusNodeRecording: false
+    kubernetesAbsent: false    # 메트릭 누락 관련
+    kubernetesStorage: false   # 스토리지 관련
+    prometheus: false          # Prometheus 자체 모니터링
+    prometheusOperator: false  # Operator 관련
+
+    # 특정 알림 비활성화
+    disabled:
+      NodeClockNotSynchronising: true
+      NodeCorruptedFilesystem: true   # 파일시스템 corruption 체크
+      NodeTextFileCollectorScrapeError: true
+      KubeVersionMismatch: true
+      NodeFilesystemSpaceFillingUp: true  # 디스크 공간 예측 알림
+      NodeFilesystemAlmostOutOfSpace: true
+      # 추가로 비활성화하고 싶은 특정 알림들...
+
+  # 알림 심각도 조정
+  rules:
+    kubernetesResources:
+      rules:
+        # CPU/메모리 경고 임계값 상향 조정
+        node:
+          nodeMemoryHighUtilization:
+            warning: 90  # 기본값 80에서 90으로 상향
+          nodeCPUHighUtilization:
+            warning: 90  # 기본값 80에서 90으로 상향
 
   ## Reduce app namespace alert scope
   appNamespacesTarget: ".*"
@@ -707,7 +712,6 @@ alertmanager:
         - class =~ "argocd|chatbot|auth"
 
     receivers:
-    - name: 'null'  # Watchdog과 InfoInhibitor용 더미 리시버
     - name: 'critical-slack-alert'
       slack_configs:
       - channel: '#metric-alert'
