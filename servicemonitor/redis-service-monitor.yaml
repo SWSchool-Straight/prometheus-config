@@ -1,7 +1,7 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: redis-exporter
+  name: redis-service-monitor
   namespace: str-monitoring  # Prometheus Operator가 설치된 네임스페이스
   labels:
     release: prometheus  # Prometheus Operator 설치 시 사용한 레이블과 일치시킵니다.
