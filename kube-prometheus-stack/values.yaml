@@ -692,6 +692,11 @@ alertmanager:
       repeat_interval: 8h
       receiver: 'default-slack-alert'
       routes:
+      # Watchdog과 InfoInhibitor를 먼저 필터링
+      - matchers:
+        - alertname =~ "Watchdog|InfoInhibitor"
+        receiver: 'null'
+      # 나머지 알림 라우팅
       - receiver: 'critical-slack-alert'
         matchers:
         - severity =~ "critical"
@@ -702,6 +707,7 @@ alertmanager:
         - class =~ "argocd|chatbot|auth"
 
     receivers:
+    - name: 'null'  # Watchdog과 InfoInhibitor용 더미 리시버
     - name: 'critical-slack-alert'
       slack_configs:
       - channel: '#metric-alert'
