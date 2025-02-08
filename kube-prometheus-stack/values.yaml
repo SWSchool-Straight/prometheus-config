@@ -320,7 +320,7 @@ additionalPrometheusRulesMap:
         rules:
           - alert: ArgocdApplicationHealth
             expr: |
-              (argocd_app_info{health_status!="Healthy"} > 0) or (argocd_app_info{sync_status!="Synced", health_status="Healthy"} > 0 and on(name) absent(argocd_app_info{health_status!="Healthy"}))
+              argocd_app_info{health_status!="Healthy"} > 0
             for: 5m
             labels:
               severity: critical
@@ -330,10 +330,28 @@ additionalPrometheusRulesMap:
               description: |
                 애플리케이션 이름: {{ $labels.name }}
                 Health 상태: {{ $labels.health_status }}
-                동기화 상태: {{ $labels.sync_status }}
                 {{ if ne $labels.health_status "Healthy" }}애플리케이션이 비정상 상태입니다.{{ end }}
-                {{ if ne $labels.sync_status "Synced" }}애플리케이션이 동기화되지 않았습니다.{{ end }}
               runbook_url: https://runbooks.prometheus-operator.dev/runbooks
+              action_guide: |
+                즉시 확인이 필요한 사항:
+                1. ArgoCD UI에서 애플리케이션 상태 확인
+                   argocd app get {{ $labels.name }}
+                
+                2. 애플리케이션 로그 확인
+                   kubectl logs -n {{ $labels.namespace }} -l app={{ $labels.name }}
+
+          - alert: ArgocdApplicationSyncFailed
+            expr: |
+              argocd_app_info{sync_status!="Synced", health_status="Healthy"} > 0 and on(name) absent(argocd_app_info{health_status!="Healthy"})
+            for: 5m
+            labels:
+              severity: critical
+              class: argocd
+            annotations:
+              summary: "[{{ $labels.name }}] ArgoCD 애플리케이션 동기화 실패"
+              description: |
+                애플리케이션 이름: {{ $labels.name }}
+                동기화 상태: {{ $labels.sync_status }}
               action_guide: |
                 즉시 확인이 필요한 사항:
                 1. ArgoCD UI에서 애플리케이션 상태 확인
@@ -360,7 +378,10 @@ additionalPrometheusRulesMap:
               class: auth
             annotations:
               summary: "[{{ $labels.pod }}] Auth 서비스 파드 다운"
-              description: "Auth 서비스 파드가 정상적으로 실행되지 않고 있습니다."
+              description: |
+                애플리케이션 이름: {{ $labels.name }}
+                Health 상태: {{ $labels.health_status }}
+                {{ if ne $labels.health_status "Healthy" }}애플리케이션이 비정상 상태입니다.{{ end }}
               action_guide: |
                 긴급 조치 필요 사항:
                 1. 파드 상태 확인
@@ -386,7 +407,10 @@ additionalPrometheusRulesMap:
               class: auth
             annotations:
               summary: "[{{ $labels.pod }}] Auth 서비스 메모리 사용량 높음"
-              description: "Auth 서비스 파드의 메모리 사용량이 85%를 초과했습니다. (현재 값: {{ $value }}%)"
+              description: |
+                애플리케이션 이름: {{ $labels.name }}
+                메모리 사용량: {{ $value }}%
+                {{ if gt $value 85 }}메모리 사용량이 85%를 초과했습니다.{{ end }}
               action_guide: |
                 확인이 필요한 사항:
                 1. 현재 메모리 사용량 확인
@@ -410,7 +434,10 @@ additionalPrometheusRulesMap:
               class: auth
             annotations:
               summary: "[{{ $labels.pod }}] Auth 서비스 CPU 사용량 높음"
-              description: "Auth 서비스 파드의 CPU 사용량이 80%를 초과했습니다. (현재 값: {{ $value }}%)"
+              description: |
+                애플리케이션 이름: {{ $labels.name }}
+                CPU 사용량: {{ $value }}%
+                {{ if gt $value 80 }}CPU 사용량이 80%를 초과했습니다.{{ end }}
               action_guide: |
                 확인이 필요한 사항:
                 1. CPU 사용량 상세 확인
@@ -431,7 +458,10 @@ additionalPrometheusRulesMap:
               class: auth
             annotations:
               summary: "[{{ $labels.pod }}] Auth 서비스 잦은 재시작 감지"
-              description: "Auth 서비스 파드가 1시간 동안 2회 이상 재시작되었습니다."
+              description: |
+                애플리케이션 이름: {{ $labels.name }}
+                재시작 횟수: {{ $value }}
+                {{ if gt $value 2 }}1시간 동안 2회 이상 재시작되었습니다.{{ end }}
 
   chatbot-rules:
     groups:
@@ -445,7 +475,10 @@ additionalPrometheusRulesMap:
               class: chatbot
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot 파드 다운"
-              description: "Chatbot 파드가 정상적으로 실행되지 않고 있습니다."
+              description: |
+                애플리케이션 이름: {{ $labels.name }}
+                Health 상태: {{ $labels.health_status }}
+                {{ if ne $labels.health_status "Healthy" }}애플리케이션이 비정상 상태입니다.{{ end }}
               action_guide: |
                 즉시 확인이 필요한 사항:
                 1. 파드 상태 확인
@@ -466,7 +499,10 @@ additionalPrometheusRulesMap:
               class: chatbot
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot 메모리 사용량 높음"
-              description: "Chatbot 파드의 메모리 사용량이 85%를 초과했습니다. (현재 값: {{ $value }}%)"
+              description: |
+                애플리케이션 이름: {{ $labels.name }}
+                메모리 사용량: {{ $value }}%
+                {{ if gt $value 85 }}메모리 사용량이 85%를 초과했습니다.{{ end }}
               action_guide: |
                 확인이 필요한 사항:
                 1. 현재 메모리 사용량 상세 확인
@@ -491,7 +527,10 @@ additionalPrometheusRulesMap:
               class: chatbot
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot CPU 사용량 높음"
-              description: "Chatbot 파드의 CPU 사용량이 80%를 초과했습니다. (현재 값: {{ $value }}%)"
+              description: |
+                애플리케이션 이름: {{ $labels.name }}
+                CPU 사용량: {{ $value }}%
+                {{ if gt $value 80 }}CPU 사용량이 80%를 초과했습니다.{{ end }}
               action_guide: |
                 확인이 필요한 사항:
                 1. CPU 사용량 모니터링
@@ -516,7 +555,10 @@ additionalPrometheusRulesMap:
               class: chatbot
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot 잦은 재시작 감지"
-              description: "Chatbot 파드가 1시간 동안 2회 이상 재시작되었습니다."
+              description: |
+                애플리케이션 이름: {{ $labels.name }}
+                재시작 횟수: {{ $value }}
+                {{ if gt $value 2 }}1시간 동안 2회 이상 재시작되었습니다.{{ end }}
               action_guide: |
                 확인이 필요한 사항:
                 1. 이전 로그 확인
