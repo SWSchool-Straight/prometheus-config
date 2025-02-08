@@ -739,18 +739,12 @@ alertmanager:
           title: '[{{ .Status | toUpper }}] {{ .CommonLabels.severity | toUpper }} - {{ .GroupLabels.alertname }}'
           text: |
             {{ range .Alerts -}}
-            *심각도:* {{ if eq .Labels.severity "warning" }}🟡 경고{{ else if eq .Labels.severity "critical" }}🔴 심각{{ else }}ℹ️ 정보{{ end }}
-            *문제 발생:* {{ .Labels.namespace }}/{{ .Labels.pod }}
-            *알림 내용:* {{ .Annotations.summary }}
-            
-            {{ if .Annotations.description }}*상세 설명:*
-            {{ .Annotations.description }}{{ end }}
-            
-            {{ if .Annotations.action_guide }}*조치 가이드:*
-            {{ .Annotations.action_guide }}{{ end }}
-            
-            *발생 시간:* {{ .StartsAt | since }}
-            {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
+            *알림 유형:* {{ .Labels.alertname }}
+            *심각도:* {{ if eq .Status "resolved" }}:초록색_원: 해결됨{{ else if eq .Labels.severity "critical" }}:빨간색_원: 심각{{ else if eq .Labels.severity "warning" }}:큰_노란색_원: 경고{{ else }}{{ .Labels.severity }}{{ end }}
+            *네임스페이스:* {{ .Labels.namespace }}
+            *애플리케이션:* {{ .Labels.name }}
+            *현재 상태:* {{ .Labels.health_status }}
+            {{ if .Annotations.description }}*자세히 표시*{{ end }}
             ---
             {{ end }}
 
