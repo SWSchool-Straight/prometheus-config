@@ -1503,7 +1503,7 @@ grafana:
       ##
       annotations: {}
       multicluster:
-global:
+        global:
           enabled: false
         etcd:
           enabled: false
