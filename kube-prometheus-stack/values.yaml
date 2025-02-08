@@ -333,43 +333,105 @@ additionalPrometheusRulesMap:
                 동기화 상태: {{ $labels.sync_status }}
                 {{ if ne $labels.health_status "Healthy" }}애플리케이션이 비정상 상태입니다.{{ end }}
                 {{ if ne $labels.sync_status "Synced" }}애플리케이션이 동기화되지 않았습니다.{{ end }}
-          - alert: ArgoAppNotSynced
-            expr: |
-              argocd_app_info{sync_status!="Synced", health_status="Healthy"} > 0 and on(name) absent(argocd_app_info{health_status!="Healthy"})
-            for: 12h
-            labels:
-              severity: warning
-              class: argocd
-            annotations:
-              summary: "[{{ $labels.name }}] 애플리케이션 동기화 실패"
-              description: "[{{ $labels.name }}] 애플리케이션이 12시간 이상 동기화되지 않았습니다."
-          - alert: ArgocdServerDown
-            expr: up{job="argocd-server-metrics"} == 0
+              runbook_url: https://runbooks.prometheus-operator.dev/runbooks
+              action_guide: |
+                즉시 확인이 필요한 사항:
+                1. ArgoCD UI에서 애플리케이션 상태 확인
+                   argocd app get {{ $labels.name }}
+                
+                2. 애플리케이션 로그 확인
+                   kubectl logs -n {{ $labels.namespace }} -l app={{ $labels.name }}
+                
+                3. 동기화 재시도
+                   argocd app sync {{ $labels.name }}
+                
+                4. 실패 시 롤백 고려
+                   argocd app rollback {{ $labels.name }}
+
+  auth-rules:
+    groups:
+      - name: auth.rules
+        rules:
+          - alert: AuthPodDown
+            expr: sum(kube_pod_status_phase{namespace="str-dev", pod=~"auth-be.*", phase=~"Failed|Unknown"}) > 0 or absent(kube_pod_status_phase{namespace="str-dev", pod=~"auth-be.*", phase="Running"}) == 1
             for: 1m
             labels:
               severity: critical
-              class: argocd
+              class: auth
             annotations:
-              summary: "ArgoCD 서버 다운"
-              description: "ArgoCD 서버에 접근할 수 없습니다."
-          - alert: ArgocdApplicationControllerDown
-            expr: up{job="argocd-application-controller-metrics"} == 0
-            for: 1m
-            labels:
-              severity: critical
-              class: argocd
-            annotations:
-              summary: "ArgoCD 애플리케이션 컨트롤러 다운"
-              description: "ArgoCD 애플리케이션 컨트롤러에 접근할 수 없습니다."
-          - alert: ArgoAppRollback
-            expr: argocd_app_sync_total{phase="Failed"} > 0
+              summary: "[{{ $labels.pod }}] Auth 서비스 파드 다운"
+              description: "Auth 서비스 파드가 정상적으로 실행되지 않고 있습니다."
+              action_guide: |
+                긴급 조치 필요 사항:
+                1. 파드 상태 확인
+                   kubectl describe pod {{ $labels.pod }} -n str-dev
+                
+                2. 최근 로그 확인
+                   kubectl logs {{ $labels.pod }} -n str-dev --previous
+                
+                3. 의존성 서비스 상태 확인
+                   - 데이터베이스 연결
+                   - 외부 인증 서비스
+                
+                4. 조치 방안:
+                   - kubectl rollout restart deployment -n str-dev auth-be
+                   - 로그 분석 후 근본 원인 파악
+                   - 필요시 이전 버전으로 롤백
+                
+          - alert: AuthHighMemoryUsage
+            expr: container_memory_usage_bytes{namespace="str-dev", pod=~"auth-be.*"} / container_spec_memory_limit_bytes{namespace="str-dev", pod=~"auth-be.*"} * 100 > 85
             for: 5m
             labels:
               severity: warning
-              class: argocd
+              class: auth
             annotations:
-              summary: "[{{ $labels.name }}] 애플리케이션 롤백 감지"
-              description: "[{{ $labels.name }}] 애플리케이션이 동기화 실패로 인해 롤백이 발생했습니다."
+              summary: "[{{ $labels.pod }}] Auth 서비스 메모리 사용량 높음"
+              description: "Auth 서비스 파드의 메모리 사용량이 85%를 초과했습니다. (현재 값: {{ $value }}%)"
+              action_guide: |
+                확인이 필요한 사항:
+                1. 현재 메모리 사용량 확인
+                   kubectl top pod {{ $labels.pod }} -n str-dev
+                
+                2. 메모리 누수 확인
+                   kubectl exec -it {{ $labels.pod }} -n str-dev -- jmap -heap 1
+                
+                3. 임시 조치: 파드 재시작
+                   kubectl delete pod {{ $labels.pod }} -n str-dev
+                
+                4. 리소스 제한 조정 검토
+                   현재 설정: kubectl describe pod {{ $labels.pod }} -n str-dev
+
+
+          - alert: AuthHighCPUUsage
+            expr: rate(container_cpu_usage_seconds_total{namespace="str-dev", pod=~"auth.*"}[5m]) * 100 > 80
+            for: 5m
+            labels:
+              severity: warning
+              class: auth
+            annotations:
+              summary: "[{{ $labels.pod }}] Auth 서비스 CPU 사용량 높음"
+              description: "Auth 서비스 파드의 CPU 사용량이 80%를 초과했습니다. (현재 값: {{ $value }}%)"
+              action_guide: |
+                확인이 필요한 사항:
+                1. CPU 사용량 상세 확인
+                   kubectl top pod {{ $labels.pod }} -n str-dev
+                
+                2. 프로세스 상태 확인
+                   kubectl exec {{ $labels.pod }} -n str-dev -- top -b -n 1
+                
+                3. 동시 접속자 수 확인
+                   - 로그에서 요청량 분석
+                   - 인증 요청 패턴 확인
+
+          - alert: AuthRestartFrequent
+            expr: increase(kube_pod_container_status_restarts_total{namespace="str-dev", pod=~"auth-be.*"}[1h]) > 2
+            for: 5m
+            labels:
+              severity: warning
+              class: auth
+            annotations:
+              summary: "[{{ $labels.pod }}] Auth 서비스 잦은 재시작 감지"
+              description: "Auth 서비스 파드가 1시간 동안 2회 이상 재시작되었습니다."
 
   chatbot-rules:
     groups:
@@ -384,6 +446,17 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot 파드 다운"
               description: "Chatbot 파드가 정상적으로 실행되지 않고 있습니다."
+              action_guide: |
+                즉시 확인이 필요한 사항:
+                1. 파드 상태 확인
+                   kubectl describe pod {{ $labels.pod }} -n str-dev
+                
+                2. 최근 로그 확인
+                   kubectl logs {{ $labels.pod }} -n str-dev --previous
+                
+                3. 파드 재시작
+                   kubectl rollout restart deployment -n str-dev chatbot-be
+
 
           - alert: ChatbotHighMemoryUsage
             expr: container_memory_usage_bytes{namespace="chatbot"} / container_spec_memory_limit_bytes{namespace="chatbot"} * 100 > 85
@@ -394,6 +467,21 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot 메모리 사용량 높음"
               description: "Chatbot 파드의 메모리 사용량이 85%를 초과했습니다. (현재 값: {{ $value }}%)"
+              action_guide: |
+                확인이 필요한 사항:
+                1. 현재 메모리 사용량 상세 확인
+                   kubectl top pod {{ $labels.pod }} -n str-dev
+                
+                2. 메모리 사용량 추이 확인 (Grafana 대시보드)
+                   - 급격한 증가 여부
+                   - 일반적인 패턴과 비교
+                
+                3. 애플리케이션 로그 확인
+                   kubectl logs {{ $labels.pod }} -n str-dev
+                
+                4. 조치 방안:
+                   - 임시: kubectl delete pod {{ $labels.pod }} -n str-dev
+                   - 영구: 메모리 제한 상향 조정 검토
 
           - alert: ChatbotHighCPUUsage
             expr: rate(container_cpu_usage_seconds_total{namespace="chatbot"}[5m]) * 100 > 80
@@ -404,9 +492,24 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot CPU 사용량 높음"
               description: "Chatbot 파드의 CPU 사용량이 80%를 초과했습니다. (현재 값: {{ $value }}%)"
+              action_guide: |
+                확인이 필요한 사항:
+                1. CPU 사용량 모니터링
+                   kubectl top pod {{ $labels.pod }} -n str-dev
+                
+                2. 프로세스 상태 확인
+                   kubectl exec {{ $labels.pod }} -n str-dev -- ps aux
+                
+                3. 요청량 확인
+                   - API 서버 로그 분석
+                   - 트래픽 패턴 확인
+                
+                4. 조치 방안:
+                   - 단기: kubectl scale deployment chatbot -n str-dev --replicas=<증가할 수>
+                   - 장기: CPU 리소스 제한 조정 검토
 
           - alert: ChatbotRestartFrequent
-            expr: increase(kube_pod_container_status_restarts_total{namespace="chatbot"}[1h]) > 2
+            expr: increase(kube_pod_container_status_restarts_total{namespace="str-dev", pod=~"chatbot-be.*"}[1h]) > 2
             for: 5m
             labels:
               severity: warning
@@ -414,52 +517,23 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot 잦은 재시작 감지"
               description: "Chatbot 파드가 1시간 동안 2회 이상 재시작되었습니다."
+              action_guide: |
+                확인이 필요한 사항:
+                1. 이전 로그 확인
+                   kubectl logs {{ $labels.pod }} -n str-dev --previous
+                
+                2. 재시작 이벤트 확인
+                   kubectl describe pod {{ $labels.pod }} -n str-dev
+                
+                3. 메모리/CPU 사용량 확인
+                   kubectl top pod {{ $labels.pod }} -n str-dev
+                
+                4. 조치 방안:
+                   - Liveness/Readiness 프로브 설정 확인
+                   - 애플리케이션 로그 분석
+                   - 리소스 제한 적절성 검토
 
-  auth-rules:
-    groups:
-      - name: auth.rules
-        rules:
-          - alert: AuthPodDown
-            expr: sum(kube_pod_status_phase{namespace="str-dev", pod=~"auth.*", phase=~"Failed|Unknown"}) > 0 or absent(kube_pod_status_phase{namespace="str-dev", pod=~"auth.*", phase="Running"}) == 1
-            for: 1m
-            labels:
-              severity: critical
-              class: auth
-            annotations:
-              summary: "[{{ $labels.pod }}] Auth 서비스 파드 다운"
-              description: "Auth 서비스 파드가 정상적으로 실행되지 않고 있습니다."
 
-          - alert: AuthHighMemoryUsage
-            expr: container_memory_usage_bytes{namespace="str-dev", pod=~"auth.*"} / container_spec_memory_limit_bytes{namespace="str-dev", pod=~"auth.*"} * 100 > 85
-            for: 5m
-            labels:
-              severity: warning
-              class: auth
-            annotations:
-              summary: "[{{ $labels.pod }}] Auth 서비스 메모리 사용량 높음"
-              description: "Auth 서비스 파드의 메모리 사용량이 85%를 초과했습니다. (현재 값: {{ $value }}%)"
-
-          - alert: AuthHighCPUUsage
-            expr: rate(container_cpu_usage_seconds_total{namespace="str-dev", pod=~"auth.*"}[5m]) * 100 > 80
-            for: 5m
-            labels:
-              severity: warning
-              class: auth
-            annotations:
-              summary: "[{{ $labels.pod }}] Auth 서비스 CPU 사용량 높음"
-              description: "Auth 서비스 파드의 CPU 사용량이 80%를 초과했습니다. (현재 값: {{ $value }}%)"
-
-          - alert: AuthRestartFrequent
-            expr: increase(kube_pod_container_status_restarts_total{namespace="str-dev", pod=~"auth.*"}[1h]) > 2
-            for: 5m
-            labels:
-              severity: warning
-              class: auth
-            annotations:
-              summary: "[{{ $labels.pod }}] Auth 서비스 잦은 재시작 감지"
-              description: "Auth 서비스 파드가 1시간 동안 2회 이상 재시작되었습니다."
-
-##
 global:
   rbac:
     create: true
@@ -569,122 +643,74 @@ alertmanager:
       resolve_timeout: 5m
       slack_api_url: 'https://hooks.slack.com/services/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'
 
-    inhibit_rules:
-      - source_matchers:
-          - 'severity = critical'
-        target_matchers:
-          - 'severity =~ warning|info'
-        equal:
-          - 'namespace'
-          - 'alertname'
-      - source_matchers:
-          - 'severity = warning'
-        target_matchers:
-          - 'severity = info'
-        equal:
-          - 'namespace'
-          - 'alertname'
-      - source_matchers:
-          - 'alertname = InfoInhibitor'
-        target_matchers:
-          - 'severity = info'
-        equal:
-          - 'namespace'
-      - target_matchers:
-          - 'alertname = InfoInhibitor'
-    route:
-      group_by: ['alertname', 'namespace', 'name']  # 그룹화 기준 수정
-      group_wait: 30s  # 초기 그룹 내 알림 대기 시간 증가
-      group_interval: 5m  # 그룹 내 알림 간격 증가
-      repeat_interval: 4h  # 반복 간격 조정
-      receiver: 'default-slack-alert'
-      routes:
-      - receiver: 'argocd-slack-alert'
-        matchers:
-        - class = "argocd"
-      - receiver: 'chatbot-slack-alert'  # 새로운 라우트 추가
-        matchers:
-        - class = "chatbot"
-      - receiver: 'auth-slack-alert'  # auth 서비스 라우트 추가
-        matchers:
-        - class = "auth"
+      route:
+        group_by: ['alertname', 'namespace', 'severity']  # severity 추가
+        group_wait: 45s  # 초기 대기 시간 조정
+        group_interval: 10m  # 그룹 알림 간격 조정
+        repeat_interval: 8h  # 반복 간격 증가
+        receiver: 'default-slack-alert'
+        routes:
+        - receiver: 'critical-slack-alert'
+          matchers:
+          - severity = "critical"
+          group_wait: 30s  # 긴급 알림은 더 빠르게
+          repeat_interval: 4h
+        - receiver: 'argocd-slack-alert'
+          matchers:
+          - class = "argocd"
+        - receiver: 'chatbot-slack-alert'
+          matchers:
+          - class = "chatbot"
+        - receiver: 'auth-slack-alert'
+          matchers:
+          - class = "auth"
 
-    ## 슬랙 알림 일시 중단을 위해 slack_configs 주석 처리
-    receivers:
-    - name: 'default-slack-alert'
-      slack_configs:
-      - channel: '#metric-alert'
-        send_resolved: true
-        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
-        title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
-        text: |
-          {{ range .Alerts }}
-          *알림 내용:* {{ .Labels.alertname }}
-          *심각도:* {{ .Labels.severity }}
-          *네임스페이스:* {{ .Labels.namespace }}
-          {{ if .Annotations.summary }}*요약:* {{ .Annotations.summary }}{{ end }}
-          {{ if .Annotations.description }}*설명:* {{ .Annotations.description }}{{ end }}
-          *시작 시간:* {{ .StartsAt | since }}
-          {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
-          ---
-          {{ end }}
+      receivers:
+      - name: 'critical-slack-alert'
+        slack_configs:
+        - channel: '#metric-alert'
+          send_resolved: true
+          color: '{{ if eq .Status "firing" }}#FF0000{{ else }}#36A64F{{ end }}'
+          title: '🚨 [긴급] {{ .GroupLabels.alertname }}'
+          text: |
+            {{ range .Alerts -}}
+            *심각도:* 🔴 긴급
+            *문제 발생:* {{ .Labels.namespace }}/{{ .Labels.pod }}
+            *알림 내용:* {{ .Annotations.summary }}
+            
+            {{ if .Annotations.description }}*상세 설명:*
+            {{ .Annotations.description }}{{ end }}
+            
+            {{ if .Annotations.action_guide }}*조치 가이드:*
+            {{ .Annotations.action_guide }}{{ end }}
+            
+            *발생 시간:* {{ .StartsAt | since }}
+            {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
+            ---
+            {{ end }}
 
-    - name: 'argocd-slack-alert'
-      slack_configs:
-      - channel: '#metric-alert'
-        send_resolved: true
-        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
-        title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
-        text: |
-          {{ range .Alerts -}}
-          *알림 유형:* {{ .Labels.alertname }}
-          *심각도:* {{ if eq .Labels.severity "critical" }}🔴 심각{{ else if eq .Labels.severity "warning" }}🟡 경고{{ else }}{{ .Labels.severity }}{{ end }}
-          *네임스페이스:* {{ .Labels.namespace }}
-          *애플리케이션:* {{ .Labels.name }}
-          *현재 상태:* {{ .Labels.health_status }}
-          *동기화 상태:* {{ .Labels.sync_status }}
-          *문제 요약:* {{ .Annotations.summary }}
-          *상세 내용:* {{ .Annotations.description }}
-          *발생 시간:* {{ .StartsAt | since }}
-          {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
-          ---
-          {{ end }}
-
-    - name: 'chatbot-slack-alert'
-      slack_configs:
-      - channel: '#metric-alert'
-        send_resolved: true
-        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
-        title: '[{{ .Status | toUpper }}] Chatbot 알림: {{ .GroupLabels.alertname }}'
-        text: |
-          {{ range .Alerts -}}
-          *알림 유형:* {{ .Labels.alertname }}
-          *심각도:* {{ if eq .Labels.severity "critical" }}🔴 심각{{ else if eq .Labels.severity "warning" }}🟡 경고{{ else }}{{ .Labels.severity }}{{ end }}
-          *파드:* {{ .Labels.pod }}
-          *문제 요약:* {{ .Annotations.summary }}
-          *상세 내용:* {{ .Annotations.description }}
-          *발생 시간:* {{ .StartsAt | since }}
-          {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
-          ---
-          {{ end }}
-
-    - name: 'auth-slack-alert'
-      slack_configs:
-      - channel: '#metric-alert'
-        send_resolved: true
-        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
-        title: '[{{ .Status | toUpper }}] Auth 서비스 알림: {{ .GroupLabels.alertname }}'
-        text: |
-          {{ range .Alerts -}}
-          *알림 유형:* {{ .Labels.alertname }}
-          *심각도:* {{ if eq .Labels.severity "critical" }}🔴 심각{{ else if eq .Labels.severity "warning" }}🟡 경고{{ else }}{{ .Labels.severity }}{{ end }}
-          *파드:* {{ .Labels.pod }}
-          *문제 요약:* {{ .Annotations.summary }}
-          *상세 내용:* {{ .Annotations.description }}
-          *발생 시간:* {{ .StartsAt | since }}
-          {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
-          ---
-          {{ end }}
+      - name: 'default-slack-alert'
+        slack_configs:
+        - channel: '#metric-alert'
+          send_resolved: true
+          color: '{{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "warning" }}#FFA500{{ else }}#FF0000{{ end }}{{ else }}#36A64F{{ end }}'
+          title: '[{{ .Status | toUpper }}] {{ .CommonLabels.severity | toUpper }} - {{ .GroupLabels.alertname }}'
+          text: |
+            {{ range .Alerts -}}
+            *심각도:* {{ if eq .Labels.severity "warning" }}🟡 경고{{ else if eq .Labels.severity "critical" }}🔴 심각{{ else }}ℹ️ 정보{{ end }}
+            *문제 발생:* {{ .Labels.namespace }}/{{ .Labels.pod }}
+            *알림 내용:* {{ .Annotations.summary }}
+            
+            {{ if .Annotations.description }}*상세 설명:*
+            {{ .Annotations.description }}{{ end }}
+            
+            {{ if .Annotations.action_guide }}*조치 가이드:*
+            {{ .Annotations.action_guide }}{{ end }}
+            
+            *발생 시간:* {{ .StartsAt | since }}
+            {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
+            ---
+            {{ end }}
 
   ## Alertmanager configuration directives (as string type, preferred over the config hash map)
   ## stringConfig will be used only, if tplConfig is true
@@ -4562,7 +4588,7 @@ prometheus:
 
     ## Additional configuration which is not covered by the properties above.
     ## Useful, if you need advanced templating inside alertmanagerSpec.
-    ## Otherwise, use prometheus.prometheusSpec.additionalConfig (passed through tpl)
+    ## Otherwise, use alertmanager.alertmanagerSpec.additionalConfig (passed through tpl)
     additionalConfigString: ""
 
     ## Defines the maximum time that the `prometheus` container's startup probe
