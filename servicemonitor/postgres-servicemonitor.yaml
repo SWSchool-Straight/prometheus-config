@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: postgres-exporter
+  namespace: str-monitoring
+  labels:
+    release: prometheus  # Prometheus Operator가 인식하도록 하는 라벨
+spec:
+  selector:
+    matchLabels:
+      app: postgres-exporter
+  endpoints:
+  - port: metrics
+    interval: 30s 
