@@ -721,7 +721,7 @@ alertmanager:
         text: |
           {{ range .Alerts -}}
           *알림 유형:* {{ .Labels.alertname }}
-          *심각도:* {{ if eq .Status "resolved" }}:초록색_원: 해결됨{{ else }}:빨간색_원: 심각{{ end }}
+          *심각도:* {{ if eq .Status "resolved" }}🟢 해결됨{{ else }}🔴 심각{{ end }}
           *네임스페이스:* {{ .Labels.namespace }}
           *애플리케이션:* {{ .Labels.name }}
           *현재 상태:* {{ .Labels.health_status }}
