@@ -652,6 +652,109 @@ additionalPrometheusRulesMap:
                  - 대량 UPDATE/INSERT 트랜잭션 최적화
                  - WAL 설정 검토 (pg_settings_summarize_wal, pg_settings_wal_init_zero 등)
 
+  redis-rules:
+    groups:
+      - name: redis.rules
+        rules:
+        - alert: RedisDown
+          expr: redis_up{job="redis-exporter"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            class: redis
+          annotations:
+            summary: "Redis 인스턴스 다운"
+            description: "Redis 인스턴스 {{ $labels.instance }}가 다운되었습니다"
+            action_guide: |
+              확인이 필요한 사항:
+              1. Redis 프로세스 상태 확인
+              2. Redis 로그 확인
+              3. 시스템 리소스 상태 점검
+
+        - alert: RedisHighMemoryUsage
+          expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+            class: redis
+          annotations:
+            summary: "Redis 메모리 사용량 높음"
+            description: "Redis 인스턴스 {{ $labels.instance }}의 메모리 사용량이 85%를 초과했습니다: {{ $value }}%"
+            action_guide: |
+              확인이 필요한 사항:
+              1. 메모리 사용량 상세 분석
+                 - INFO memory 명령어로 확인
+                 - 큰 키 조회: redis-cli --bigkeys
+              2. 만료 정책 검토
+              3. 메모리 정리 고려사항:
+                 - 오래된 키 삭제
+                 - 만료시간 설정
+                 - maxmemory-policy 설정 검토
+
+        - alert: RedisClusterSyncError
+          expr: redis_cluster_slots_fail > 0
+          for: 1m
+          labels:
+            severity: critical
+            class: redis
+          annotations:
+            summary: "Redis 클러스터 동기화 오류"
+            description: "Redis 클러스터 {{ $labels.instance }}에서 슬롯 동기화 오류가 발생했습니다"
+            action_guide: |
+              확인이 필요한 사항:
+              1. 클러스터 상태 확인
+                 - CLUSTER INFO
+                 - CLUSTER NODES
+              2. 네트워크 연결 상태 확인
+              3. 슬롯 재할당 필요성 검토
+
+        - alert: RedisReplicationBroken
+          expr: redis_connected_slaves < redis_config_slaves
+          for: 1m
+          labels:
+            severity: critical
+            class: redis
+          annotations:
+            summary: "Redis 복제 오류"
+            description: "Redis 인스턴스 {{ $labels.instance }}의 복제 상태가 비정상입니다"
+            action_guide: |
+              확인이 필요한 사항:
+              1. 복제 상태 확인
+                 - INFO replication
+              2. 슬레이브 노드 상태 확인
+              3. 네트워크 연결 상태 점검
+
+        - alert: RedisHighCommandLatency
+          expr: rate(redis_commands_duration_seconds_total[1m]) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+            class: redis
+          annotations:
+            summary: "Redis 명령어 지연 발생"
+            description: "Redis 인스턴스 {{ $labels.instance }}에서 명령어 처리 지연이 발생했습니다"
+            action_guide: |
+              확인이 필요한 사항:
+              1. SLOWLOG GET 확인
+              2. 시스템 리소스 사용량 확인
+              3. 네트워크 지연 여부 확인
+              4. 느린 명령어 패턴 분석
+
+        - alert: RedisKeyEvictionRate
+          expr: rate(redis_evicted_keys_total[1m]) > 100
+          for: 5m
+          labels:
+            severity: warning
+            class: redis
+          annotations:
+            summary: "Redis 키 축출 빈도 높음"
+            description: "Redis 인스턴스 {{ $labels.instance }}에서 키 축출이 빈번하게 발생하고 있습니다: {{ $value }}/s"
+            action_guide: |
+              확인이 필요한 사항:
+              1. 메모리 사용량 확인
+              2. maxmemory 설정 검토
+              3. 축출 정책 적절성 검토
+              4. 캐시 크기 조정 필요성 검토
 global:
   rbac:
     create: true
