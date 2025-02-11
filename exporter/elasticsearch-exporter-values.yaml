@@ -1,0 +1,4 @@
+
+es: 
+  uri: https://elastic:straight1234!@elasticsearch-master:9200
+  sslSkipVerify: true

@@ -7,7 +7,8 @@ helm install elasticsearch-exporter prometheus-community/prometheus-elasticsearc
   --set es.sslSkipVerify=true \
   --set serviceMonitor.enabled=true \
   --set serviceMonitor.namespace=str-monitoring \
-  --set serviceMonitor.labels.release=prometheus
+  --set serviceMonitor.labels.release=prometheus \
+  -f ../exporter/elasticsearch-exporter-values.yaml
 
 # kibana-exporter
 helm repo add afcharts https://anchorfree.github.io/helm-charts
