@@ -11,5 +11,5 @@ fullnameOverride: ""
 
 extraArgs:
   kibana.uri: "http://kibana.str-logging.svc.cluster.local:5601"
-  kibana.username: "straight"
+  kibana.username: "elastic"
   kibana.password: "straight1234!"
