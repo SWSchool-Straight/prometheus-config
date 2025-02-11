@@ -1,6 +1,6 @@
 
 es: 
-  uri: https://elastic:straight1234!@elasticsearch-master:9200
+  uri: https://elastic:straight1234!@:elasticsearch-master.str-logging.svc.cluster.local:9200
   sslSkipVerify: true
 serviceMonitor:
   enabled: true
