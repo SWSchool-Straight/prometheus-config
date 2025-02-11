@@ -343,7 +343,7 @@ additionalPrometheusRulesMap:
                    argocd app get {{ $labels.name }}
                 
                 2. 애플리케이션 로그 확인
-                   kubectl logs -n {{ $labels.namespace }} -l app={{ $labels.name }}
+                   kubectl logs -n {{ $labels.namespace }} | grep {{ $labels.name }}
 
           - alert: ArgocdApplicationSyncFailed
             expr: |
@@ -363,7 +363,7 @@ additionalPrometheusRulesMap:
                    argocd app get {{ $labels.name }}
                 
                 2. 애플리케이션 로그 확인
-                   kubectl logs -n {{ $labels.namespace }} -l app={{ $labels.name }}
+                   kubectl logs -n {{ $labels.namespace }} | grep {{ $labels.name }}
                 
                 3. 동기화 재시도
                    argocd app sync {{ $labels.name }}
