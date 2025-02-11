@@ -606,30 +606,6 @@ additionalPrometheusRulesMap:
                 - 현재 max_connections 값 확인
                 - 애플리케이션의 커넥션 풀 설정 검토
 
-        # 디스크 공간 관련 알림
-        - alert: PostgreSQLDiskSpaceLow
-          expr: |
-            (pg_settings_segment_size_bytes * pg_settings_block_size/pg_settings_block_size) * 100 > 85
-          for: 5m
-          labels:
-            severity: warning
-            class: postgresql
-          annotations:
-            summary: "PostgreSQL 디스크 공간 부족"
-            description: "데이터베이스의 디스크 사용량이 85%를 초과했습니다: {{ $value }}%"
-            action_guide: |
-              확인이 필요한 사항:
-              1. 디스크 사용량 상세 확인
-                 - SELECT pg_database_size(current_database());
-                 - SELECT pg_size_pretty(pg_database_size(current_database()));
-              2. 대용량 테이블 식별
-                 - SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size 
-                   FROM pg_tables ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
-              3. 조치 방안:
-                 - VACUUM FULL 실행 검토
-                 - 오래된 데이터 아카이빙
-                 - 디스크 증설 계획
-
         # WAL 생성 속도 모니터링
         - alert: PostgreSQLHighWALGeneration
           expr: rate(pg_settings_wal_segment_size_bytes[5m]) > 10485760  # 10MB/s
