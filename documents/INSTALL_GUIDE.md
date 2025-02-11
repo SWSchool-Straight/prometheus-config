@@ -9,7 +9,7 @@
 ./install/prometheus-install.sh
 ```
 
-## 2. 프로메테우스 메트릭 수집기 (exporter)설치
+## 2. 프로메테우스 메트릭 수집기 (exporter) 설치
 
 ```bash
 ./install/exporter-install.sh
