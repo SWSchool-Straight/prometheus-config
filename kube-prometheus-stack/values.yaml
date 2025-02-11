@@ -580,6 +580,77 @@ additionalPrometheusRulesMap:
                    - 애플리케이션 로그 분석
                    - 리소스 제한 적절성 검토
 
+  postgres-rules:
+    groups:
+      - name: postgres.rules
+        rules:
+        - alert: PostgreSQLHighConnections
+          expr: |
+            (pg_settings_max_connections{job="postgres-exporter"} - on(instance) sum by (instance) (pg_stat_activity_count{job="postgres-exporter"})) < 20
+          for: 5m
+          labels:
+            severity: warning
+            class: postgresql
+          annotations:
+            summary: "PostgreSQL 연결 수가 높음"
+            description: "남은 연결 가능 수가 20개 미만입니다. 현재 남은 연결 수: {{ $value }}"
+            action_guide: |
+              확인이 필요한 사항:
+              1. 현재 활성 연결 확인
+                - SELECT * FROM pg_stat_activity;
+              2. 오래된 연결 정리
+                - SELECT pg_terminate_backend(pid) FROM pg_stat_activity 
+                  WHERE state in ('idle', 'idle in transaction') 
+                  AND state_change < NOW() - INTERVAL '30 minutes';
+              3. 커넥션 풀 설정 검토
+                - 현재 max_connections 값 확인
+                - 애플리케이션의 커넥션 풀 설정 검토
+
+        # 디스크 공간 관련 알림
+        - alert: PostgreSQLDiskSpaceLow
+          expr: |
+            (pg_settings_segment_size_bytes * pg_settings_block_size/pg_settings_block_size) * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+            class: postgresql
+          annotations:
+            summary: "PostgreSQL 디스크 공간 부족"
+            description: "데이터베이스의 디스크 사용량이 85%를 초과했습니다: {{ $value }}%"
+            action_guide: |
+              확인이 필요한 사항:
+              1. 디스크 사용량 상세 확인
+                 - SELECT pg_database_size(current_database());
+                 - SELECT pg_size_pretty(pg_database_size(current_database()));
+              2. 대용량 테이블 식별
+                 - SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size 
+                   FROM pg_tables ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+              3. 조치 방안:
+                 - VACUUM FULL 실행 검토
+                 - 오래된 데이터 아카이빙
+                 - 디스크 증설 계획
+
+        # WAL 생성 속도 모니터링
+        - alert: PostgreSQLHighWALGeneration
+          expr: rate(pg_settings_wal_segment_size_bytes[5m]) > 10485760  # 10MB/s
+          for: 10m
+          labels:
+            severity: warning
+            class: postgresql
+          annotations:
+            summary: "PostgreSQL WAL 생성량 높음"
+            description: "WAL 생성 속도가 10MB/s를 초과했습니다: {{ $value | humanize }}B/s"
+            action_guide: |
+              확인이 필요한 사항:
+              1. WAL 설정 확인
+                 - pg_settings_wal_block_size
+                 - pg_settings_wal_segment_size_bytes
+              2. 트랜잭션 패턴 분석
+                 - SELECT datname, xact_commit, xact_rollback 
+                   FROM pg_stat_database;
+              3. 조치 방안:
+                 - 대량 UPDATE/INSERT 트랜잭션 최적화
+                 - WAL 설정 검토 (pg_settings_summarize_wal, pg_settings_wal_init_zero 등)
 
 global:
   rbac:
