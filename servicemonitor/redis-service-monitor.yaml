@@ -11,7 +11,7 @@ spec:
       app: redis-exporter
   namespaceSelector:
     matchNames:
-    - str-redis  # redis-exporter가 있는 네임스페이스를 지정
+    - str-monitoring  # redis-exporter가 있는 네임스페이스를 지정
   endpoints:
   - port: metrics
     interval: 15s
