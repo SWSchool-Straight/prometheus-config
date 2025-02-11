@@ -883,7 +883,7 @@ alertmanager:
         repeat_interval: 4h
       - receiver: 'default-slack-alert'
         matchers:
-        - class =~ "argocd|chatbot|auth"
+        - class =~ "argocd|chatbot|auth|postgresql|redis"
 
     receivers:
     - name: 'critical-slack-alert'
