@@ -2,3 +2,8 @@
 es: 
   uri: https://elastic:straight1234!@elasticsearch-master:9200
   sslSkipVerify: true
+serviceMonitor:
+  enabled: true
+  namespace: str-monitoring
+  labels:
+    release: prometheus
