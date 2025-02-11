@@ -34,7 +34,7 @@
 
 ## 설치 방법
 
-documents/INSTALL_GUIDE.md 파일을 참고하여 설치합니다.
+`install.sh` 파일을 실행하여 설치합니다.
 
 ## 설치 확인
 
