@@ -1,7 +1,10 @@
 # elasticsearch-exporter
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
 helm install elasticsearch-exporter prometheus-community/prometheus-elasticsearch-exporter \
-  --namespace str-monitoring \
-  --set es.uri=http://elasticsearch-master.str-logging.svc.cluster.local:9200 \
+  -n str-monitoring \
+  --set es.uri="https://elastic:straight1234!@elasticsearch-master:9200" \
+  --set es.sslSkipVerify=true \
   --set serviceMonitor.enabled=true \
   --set serviceMonitor.namespace=str-monitoring \
   --set serviceMonitor.labels.release=prometheus
