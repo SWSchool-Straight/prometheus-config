@@ -859,7 +859,7 @@ alertmanager:
         text: |
           {{ range .Alerts -}}
           *알림 유형:* {{ .Labels.alertname }}
-          *심각도:* {{ if eq .Status "resolved" }}:large_green_circle: 해결됨{{ else }}:red_circle: 심각{{ end }}
+          *심각도:* {{ if eq .Status "resolved" }}🟢 해결됨{{ else }}🔴 심각{{ end }}
           *네임스페이스:* {{ .Labels.namespace }}
           *요약:* {{ .Annotations.summary }}
           
@@ -883,7 +883,7 @@ alertmanager:
         text: |
           {{ range .Alerts -}}
           *알림 유형:* {{ .Labels.alertname }}
-          *심각도:* {{ if eq .Status "resolved" }}:large_green_circle: 해결됨{{ else if eq .Labels.severity "critical" }}:red_circle: 심각{{ else if eq .Labels.severity "warning" }}:warning: 경고{{ else }}{{ .Labels.severity }}{{ end }}
+          *심각도:* {{ if eq .Status "resolved" }}🟢 해결됨{{ else if eq .Labels.severity "critical" }}🔴 심각{{ else if eq .Labels.severity "warning" }}🟡 경고{{ else }}{{ .Labels.severity }}{{ end }}
           *네임스페이스:* {{ .Labels.namespace }}
 
           {{ if .Annotations.description }}*상세 설명:*
