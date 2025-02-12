@@ -341,8 +341,7 @@ additionalPrometheusRulesMap:
               action_guide: |
                 즉시 확인이 필요한 사항:
                 1. ArgoCD UI에서 애플리케이션 상태 확인
-                   argocd app get {{ $labels.name }}
-                
+
                 2. 애플리케이션 로그 확인
                    kubectl logs -n {{ $labels.namespace }} | grep {{ $labels.name }}
 
@@ -361,16 +360,13 @@ additionalPrometheusRulesMap:
               action_guide: |
                 즉시 확인이 필요한 사항:
                 1. ArgoCD UI에서 애플리케이션 상태 확인
-                   argocd app get {{ $labels.name }}
                 
                 2. 애플리케이션 로그 확인
                    kubectl logs -n {{ $labels.namespace }} | grep {{ $labels.name }}
                 
                 3. 동기화 재시도
-                   argocd app sync {{ $labels.name }}
                 
                 4. 실패 시 롤백 고려
-                   argocd app rollback {{ $labels.name }}
 
   auth-rules:
     groups:
@@ -385,9 +381,7 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Auth 서비스 파드 다운"
               description: |
-                애플리케이션 이름: {{ $labels.name }}
-                Health 상태: {{ $labels.health_status }}
-                {{ if ne $labels.health_status "Healthy" }}애플리케이션이 비정상 상태입니다.{{ end }}
+                파드 상태: {{ $labels.phase }}
               action_guide: |
                 긴급 조치 필요 사항:
                 1. 파드 상태 확인
@@ -441,7 +435,6 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Auth 서비스 CPU 사용량 높음"
               description: |
-                애플리케이션 이름: {{ $labels.name }}
                 CPU 사용량: {{ $value }}%
                 {{ if gt $value 80 }}CPU 사용량이 80%를 초과했습니다.{{ end }}
               action_guide: |
@@ -465,7 +458,6 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Auth 서비스 잦은 재시작 감지"
               description: |
-                애플리케이션 이름: {{ $labels.name }}
                 재시작 횟수: {{ $value }}
                 {{ if gt $value 2 }}1시간 동안 2회 이상 재시작되었습니다.{{ end }}
 
@@ -482,9 +474,7 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot 파드 다운"
               description: |
-                애플리케이션 이름: {{ $labels.name }}
-                Health 상태: {{ $labels.health_status }}
-                {{ if ne $labels.health_status "Healthy" }}애플리케이션이 비정상 상태입니다.{{ end }}
+                파드 상태: {{ $labels.phase }}
               action_guide: |
                 즉시 확인이 필요한 사항:
                 1. 파드 상태 확인
@@ -506,7 +496,6 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot 메모리 사용량 높음"
               description: |
-                애플리케이션 이름: {{ $labels.name }}
                 메모리 사용량: {{ $value }}%
                 {{ if gt $value 85 }}메모리 사용량이 85%를 초과했습니다.{{ end }}
               action_guide: |
@@ -534,7 +523,6 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot CPU 사용량 높음"
               description: |
-                애플리케이션 이름: {{ $labels.name }}
                 CPU 사용량: {{ $value }}%
                 {{ if gt $value 80 }}CPU 사용량이 80%를 초과했습니다.{{ end }}
               action_guide: |
@@ -562,7 +550,6 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot 잦은 재시작 감지"
               description: |
-                애플리케이션 이름: {{ $labels.name }}
                 재시작 횟수: {{ $value }}
                 {{ if gt $value 2 }}1시간 동안 2회 이상 재시작되었습니다.{{ end }}
               action_guide: |
@@ -872,10 +859,8 @@ alertmanager:
         text: |
           {{ range .Alerts -}}
           *알림 유형:* {{ .Labels.alertname }}
-          *심각도:* {{ if eq .Status "resolved" }}🟢 해결됨{{ else }}🔴 심각{{ end }}
+          *심각도:* {{ if eq .Status "resolved" }}:large_green_circle: 해결됨{{ else }}:red_circle: 심각{{ end }}
           *네임스페이스:* {{ .Labels.namespace }}
-          *애플리케이션:* {{ .Labels.name }}
-          *현재 상태:* {{ .Labels.health_status }}
           *요약:* {{ .Annotations.summary }}
           
           {{ if .Annotations.description }}*상세 설명:*
@@ -898,11 +883,19 @@ alertmanager:
         text: |
           {{ range .Alerts -}}
           *알림 유형:* {{ .Labels.alertname }}
-          *심각도:* {{ if eq .Status "resolved" }}🟢 해결됨{{ else if eq .Labels.severity "critical" }}🔴 심각{{ else if eq .Labels.severity "warning" }}🟡 경고{{ else }}{{ .Labels.severity }}{{ end }}
+          *심각도:* {{ if eq .Status "resolved" }}:large_green_circle: 해결됨{{ else if eq .Labels.severity "critical" }}:red_circle: 심각{{ else if eq .Labels.severity "warning" }}:warning: 경고{{ else }}{{ .Labels.severity }}{{ end }}
           *네임스페이스:* {{ .Labels.namespace }}
-          *애플리케이션:* {{ .Labels.name }}
-          *현재 상태:* {{ .Labels.health_status }}
-          {{ if .Annotations.description }}*자세히 표시*{{ end }}
+
+          {{ if .Annotations.description }}*상세 설명:*
+          {{ .Annotations.description }}{{ end }}
+          
+          {{ if .Annotations.summary }}*요약:* {{ .Annotations.summary }}{{ end }}
+          
+          {{ if .Annotations.action_guide }}*조치 가이드:*
+          {{ .Annotations.action_guide }}{{ end }}
+          
+          *발생 시간:* {{ .StartsAt | since }}
+          {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
           ---
           {{ end }}
 
