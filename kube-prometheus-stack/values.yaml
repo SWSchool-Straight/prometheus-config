@@ -180,26 +180,13 @@ defaultRules:
     # 애플리케이션 관련
     kubernetesApps: true        # 디플로이먼트, 스테이트풀셋 등
     
-    # 비활성화할 규칙들
-    alertmanager: false         # AlertManager 자체 모니터링
-    etcd: false                # etcd 모니터링 (외부 etcd 사용 시)
-    general: false             # 일반적인 규칙
-    kubePrometheusNodeAlerting: false
-    kubePrometheusNodeRecording: false
-    kubernetesAbsent: false    # 메트릭 누락 관련
-    kubernetesStorage: false   # 스토리지 관련
-    prometheus: false          # Prometheus 자체 모니터링
-    prometheusOperator: false  # Operator 관련
+    # 현재 비활성화된 중요 규칙들을 활성화
+    general: true               # 일반적인 규칙 (CPU, 메모리 등 기본 메트릭)
+    kubePrometheusNodeAlerting: true    # 노드 알림
+    kubePrometheusNodeRecording: true   # 노드 메트릭 기록
+    kubernetesStorage: true    # 스토리지 관련
+    kubernetesAbsent: true     # 메트릭 누락 관련
 
-    # 특정 알림 비활성화
-    disabled:
-      NodeClockNotSynchronising: true
-      NodeCorruptedFilesystem: true   # 파일시스템 corruption 체크
-      NodeTextFileCollectorScrapeError: true
-      KubeVersionMismatch: true
-      NodeFilesystemSpaceFillingUp: true  # 디스크 공간 예측 알림
-      NodeFilesystemAlmostOutOfSpace: true
-      # 추가로 비활성화하고 싶은 특정 알림들...
 
   # 알림 심각도 조정
   rules:
