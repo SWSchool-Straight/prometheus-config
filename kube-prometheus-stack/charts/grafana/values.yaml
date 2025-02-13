@@ -361,7 +361,7 @@ resources: {}
 ## ref: https://kubernetes.io/docs/user-guide/node-selection/
 #
 nodeSelector: 
-  workload-type: "general"
+  environment: "operation"
 
 ## Tolerations for pod assignment
 ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
@@ -1433,7 +1433,7 @@ imageRenderer:
   ## ref: https://kubernetes.io/docs/user-guide/node-selection/
   #
   nodeSelector: 
-    workload-type: "general"
+    environment: "operation"
 
   ## Tolerations for pod assignment
   ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
