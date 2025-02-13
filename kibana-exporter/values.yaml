@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: chamilad/kibana-prometheus-exporter
-  tag: v7.5.x.1
+  tag: v8.7.x.2
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -14,7 +14,9 @@ nameOverride: ""
 fullnameOverride: ""
 
 extraArgs:
-  kibana.uri: "http://kibana:5601"
+  kibana.uri: "http://kibana.str-logging.svc.cluster.local:5601"
+  kibana.username: "elastic"
+  kibana.password: "straight1234!"
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -52,7 +54,9 @@ service:
 
 serviceMonitor:
   enabled: true
-  additionalLabels: {}
+  namespace: str-monitoring
+  additionalLabels:
+    release: prometheus
   # namespace: default
   # interval: 30s
   # scrapeTimeout: 10s
@@ -69,7 +73,8 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-nodeSelector: {}
+nodeSelector:
+  environment: "operation"
 
 tolerations: []
 

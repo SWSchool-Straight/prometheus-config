@@ -5,6 +5,10 @@ helm install elasticsearch-exporter prometheus-community/prometheus-elasticsearc
   -n str-monitoring \
   -f ../exporter/elasticsearch-exporter-values.yaml
 
+
+helm install elasticsearch-exporter ../prometheus-elasticsearch-exporter \
+  --namespace str-monitoring
+
 # kibana-exporter
 helm repo add afcharts https://anchorfree.github.io/helm-charts
 helm repo update
