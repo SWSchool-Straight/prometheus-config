@@ -180,26 +180,13 @@ defaultRules:
     # 애플리케이션 관련
     kubernetesApps: true        # 디플로이먼트, 스테이트풀셋 등
     
-    # 비활성화할 규칙들
-    alertmanager: false         # AlertManager 자체 모니터링
-    etcd: false                # etcd 모니터링 (외부 etcd 사용 시)
-    general: false             # 일반적인 규칙
-    kubePrometheusNodeAlerting: false
-    kubePrometheusNodeRecording: false
-    kubernetesAbsent: false    # 메트릭 누락 관련
-    kubernetesStorage: false   # 스토리지 관련
-    prometheus: false          # Prometheus 자체 모니터링
-    prometheusOperator: false  # Operator 관련
+    # 현재 비활성화된 중요 규칙들을 활성화
+    general: true               # 일반적인 규칙 (CPU, 메모리 등 기본 메트릭)
+    kubePrometheusNodeAlerting: true    # 노드 알림
+    kubePrometheusNodeRecording: true   # 노드 메트릭 기록
+    kubernetesStorage: true    # 스토리지 관련
+    kubernetesAbsent: true     # 메트릭 누락 관련
 
-    # 특정 알림 비활성화
-    disabled:
-      NodeClockNotSynchronising: true
-      NodeCorruptedFilesystem: true   # 파일시스템 corruption 체크
-      NodeTextFileCollectorScrapeError: true
-      KubeVersionMismatch: true
-      NodeFilesystemSpaceFillingUp: true  # 디스크 공간 예측 알림
-      NodeFilesystemAlmostOutOfSpace: true
-      # 추가로 비활성화하고 싶은 특정 알림들...
 
   # 알림 심각도 조정
   rules:
@@ -341,8 +328,7 @@ additionalPrometheusRulesMap:
               action_guide: |
                 즉시 확인이 필요한 사항:
                 1. ArgoCD UI에서 애플리케이션 상태 확인
-                   argocd app get {{ $labels.name }}
-                
+
                 2. 애플리케이션 로그 확인
                    kubectl logs -n {{ $labels.namespace }} | grep {{ $labels.name }}
 
@@ -361,16 +347,13 @@ additionalPrometheusRulesMap:
               action_guide: |
                 즉시 확인이 필요한 사항:
                 1. ArgoCD UI에서 애플리케이션 상태 확인
-                   argocd app get {{ $labels.name }}
                 
                 2. 애플리케이션 로그 확인
                    kubectl logs -n {{ $labels.namespace }} | grep {{ $labels.name }}
                 
                 3. 동기화 재시도
-                   argocd app sync {{ $labels.name }}
                 
                 4. 실패 시 롤백 고려
-                   argocd app rollback {{ $labels.name }}
 
   auth-rules:
     groups:
@@ -385,9 +368,7 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Auth 서비스 파드 다운"
               description: |
-                애플리케이션 이름: {{ $labels.name }}
-                Health 상태: {{ $labels.health_status }}
-                {{ if ne $labels.health_status "Healthy" }}애플리케이션이 비정상 상태입니다.{{ end }}
+                파드 상태: {{ $labels.phase }}
               action_guide: |
                 긴급 조치 필요 사항:
                 1. 파드 상태 확인
@@ -441,7 +422,6 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Auth 서비스 CPU 사용량 높음"
               description: |
-                애플리케이션 이름: {{ $labels.name }}
                 CPU 사용량: {{ $value }}%
                 {{ if gt $value 80 }}CPU 사용량이 80%를 초과했습니다.{{ end }}
               action_guide: |
@@ -465,7 +445,6 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Auth 서비스 잦은 재시작 감지"
               description: |
-                애플리케이션 이름: {{ $labels.name }}
                 재시작 횟수: {{ $value }}
                 {{ if gt $value 2 }}1시간 동안 2회 이상 재시작되었습니다.{{ end }}
 
@@ -482,9 +461,7 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot 파드 다운"
               description: |
-                애플리케이션 이름: {{ $labels.name }}
-                Health 상태: {{ $labels.health_status }}
-                {{ if ne $labels.health_status "Healthy" }}애플리케이션이 비정상 상태입니다.{{ end }}
+                파드 상태: {{ $labels.phase }}
               action_guide: |
                 즉시 확인이 필요한 사항:
                 1. 파드 상태 확인
@@ -506,7 +483,6 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot 메모리 사용량 높음"
               description: |
-                애플리케이션 이름: {{ $labels.name }}
                 메모리 사용량: {{ $value }}%
                 {{ if gt $value 85 }}메모리 사용량이 85%를 초과했습니다.{{ end }}
               action_guide: |
@@ -534,7 +510,6 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot CPU 사용량 높음"
               description: |
-                애플리케이션 이름: {{ $labels.name }}
                 CPU 사용량: {{ $value }}%
                 {{ if gt $value 80 }}CPU 사용량이 80%를 초과했습니다.{{ end }}
               action_guide: |
@@ -562,7 +537,6 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "[{{ $labels.pod }}] Chatbot 잦은 재시작 감지"
               description: |
-                애플리케이션 이름: {{ $labels.name }}
                 재시작 횟수: {{ $value }}
                 {{ if gt $value 2 }}1시간 동안 2회 이상 재시작되었습니다.{{ end }}
               action_guide: |
@@ -874,8 +848,6 @@ alertmanager:
           *알림 유형:* {{ .Labels.alertname }}
           *심각도:* {{ if eq .Status "resolved" }}🟢 해결됨{{ else }}🔴 심각{{ end }}
           *네임스페이스:* {{ .Labels.namespace }}
-          *애플리케이션:* {{ .Labels.name }}
-          *현재 상태:* {{ .Labels.health_status }}
           *요약:* {{ .Annotations.summary }}
           
           {{ if .Annotations.description }}*상세 설명:*
@@ -900,9 +872,17 @@ alertmanager:
           *알림 유형:* {{ .Labels.alertname }}
           *심각도:* {{ if eq .Status "resolved" }}🟢 해결됨{{ else if eq .Labels.severity "critical" }}🔴 심각{{ else if eq .Labels.severity "warning" }}🟡 경고{{ else }}{{ .Labels.severity }}{{ end }}
           *네임스페이스:* {{ .Labels.namespace }}
-          *애플리케이션:* {{ .Labels.name }}
-          *현재 상태:* {{ .Labels.health_status }}
-          {{ if .Annotations.description }}*자세히 표시*{{ end }}
+
+          {{ if .Annotations.description }}*상세 설명:*
+          {{ .Annotations.description }}{{ end }}
+          
+          {{ if .Annotations.summary }}*요약:* {{ .Annotations.summary }}{{ end }}
+          
+          {{ if .Annotations.action_guide }}*조치 가이드:*
+          {{ .Annotations.action_guide }}{{ end }}
+          
+          *발생 시간:* {{ .StartsAt | since }}
+          {{ if ne .Status "firing" }}*해결 시간:* {{ .EndsAt | since }}{{ end }}
           ---
           {{ end }}
 
@@ -1367,16 +1347,15 @@ alertmanager:
     ## Storage is the definition of how storage will be used by the Alertmanager instances.
     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/storage.md
     ##
-    storage: {}
+    storage: 
     # volumeClaimTemplate:
-    #   spec:
-    #     storageClassName: gluster
-    #     accessModes: ["ReadWriteOnce"]
-    #     resources:
-    #       requests:
-    #         storage: 50Gi
-    #   selector: {}
-
+      spec:
+        storageClassName: gp2
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi
+      selector: 
 
     ## The external URL the Alertmanager instances will be available under. This is necessary to generate correct URLs. This is necessary if Alertmanager is not served from root of a DNS name. string  false
     ##
@@ -4467,17 +4446,17 @@ prometheus:
     ## Prometheus StorageSpec for persistent data
     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/storage.md
     ##
-    storageSpec: {}
+    storageSpec: 
     ## Using PersistentVolumeClaim
     ##
     #  volumeClaimTemplate:
-    #    spec:
-    #      storageClassName: gluster
-    #      accessModes: ["ReadWriteOnce"]
-    #      resources:
-    #        requests:
-    #          storage: 50Gi
-    #    selector: {}
+       spec:
+         storageClassName: gp2
+         accessModes: ["ReadWriteOnce"]
+         resources:
+           requests:
+             storage: 50Gi
+       selector: {}
 
     ## Using tmpfs volume
     ##
@@ -5285,15 +5264,15 @@ thanosRuler:
     ## Storage is the definition of how storage will be used by the ThanosRuler instances.
     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/storage.md
     ##
-    storage: {}
-    # volumeClaimTemplate:
-    #   spec:
-    #     storageClassName: gluster
-    #     accessModes: ["ReadWriteOnce"]
-    #     resources:
-    #       requests:
-    #         storage: 50Gi
-    #   selector: {}
+    storage: 
+    # volumeClaimTemplate
+      spec:
+        storageClassName: gp2
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi
+      selector:
 
     ## AlertmanagerConfig define configuration for connecting to alertmanager.
     ## Only available with Thanos v0.10.0 and higher. Maps to the alertmanagers.config Thanos Ruler arg.
