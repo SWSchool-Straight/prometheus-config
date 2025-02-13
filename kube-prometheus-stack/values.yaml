@@ -337,10 +337,15 @@ additionalPrometheusRulesMap:
               action_guide: |
                 즉시 확인이 필요한 사항:
                 1. ArgoCD UI에서 애플리케이션 상태 확인
-                   argocd app get {{ $labels.name }}
-                
                 2. 애플리케이션 로그 확인
                    kubectl logs -n {{ $labels.namespace }} | grep {{ $labels.name }}
+
+                애플리케이션 rollout 상태가 preview일 경우, 테스트 통과후 active로 승격시켜야 정상적으로 배포됩니다.
+                1. rollout 상태 확인
+                   kubectl-argo-rollouts get rollout {{ $labels.name }} -n {{ $labels.namespace }}
+
+                2. active로 승격 (Green → Blue)
+                   kubectl-argo-rollouts promote {{ $labels.name }} -n {{ $labels.namespace }}
 
           - alert: ArgocdApplicationSyncFailed
             expr: |
