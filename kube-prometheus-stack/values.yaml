@@ -837,6 +837,8 @@ alertmanager:
         - class =~ "argocd|chatbot|auth|postgresql|redis"
 
     receivers:
+    - name: 'null'
+      webhook_configs: []
     - name: 'critical-slack-alert'
       slack_configs:
       - channel: '#metric-alert'
