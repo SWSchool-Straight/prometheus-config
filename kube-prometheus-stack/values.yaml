@@ -1347,7 +1347,7 @@ alertmanager:
     ## Storage is the definition of how storage will be used by the Alertmanager instances.
     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/storage.md
     ##
-    storage: {}
+    storage: 
     # volumeClaimTemplate:
       spec:
         storageClassName: gp2
@@ -4447,7 +4447,7 @@ prometheus:
     ## Prometheus StorageSpec for persistent data
     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/storage.md
     ##
-    storageSpec: {}
+    storageSpec: 
     ## Using PersistentVolumeClaim
     ##
     #  volumeClaimTemplate:
@@ -5265,8 +5265,8 @@ thanosRuler:
     ## Storage is the definition of how storage will be used by the ThanosRuler instances.
     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/storage.md
     ##
-    storage: {}
-    volumeClaimTemplate:
+    storage: 
+    # volumeClaimTemplate
       spec:
         storageClassName: gp2
         accessModes: ["ReadWriteOnce"]
