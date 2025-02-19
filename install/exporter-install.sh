@@ -1,20 +1,9 @@
 # elasticsearch-exporter
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-helm install elasticsearch-exporter prometheus-community/prometheus-elasticsearch-exporter \
-  -n str-monitoring \
-  -f ../exporter/elasticsearch-exporter-values.yaml
-
-
 helm install elasticsearch-exporter ../prometheus-elasticsearch-exporter \
   --namespace str-monitoring
 
-# kibana-exporter
-helm repo add afcharts https://anchorfree.github.io/helm-charts
-helm repo update
-helm install kibana-exporter afcharts/kibana-exporter \
-	-n str-monitoring \
-	-f ../exporter/kibana-exporter-values.yaml
+helm install kibana-exporter ../kibana-exporter \
+  --namespace str-monitoring
 
 # redis-exporter
 kubectl apply -f ./exporter/redis-exporter.yaml
